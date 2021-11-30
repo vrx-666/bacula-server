@@ -1,0 +1,47 @@
+[api]
+auth_type = "basic"
+debug = "0"
+lang = "en"
+
+[db]
+enabled = "1"
+type = "sqlite"
+name = "bacula"
+login = "bacula"
+password = ""
+ip_addr = ""
+port = ""
+path = "/var/lib/bacula/bacula.db"
+
+[bconsole]
+enabled = "1"
+bin_path = "/usr/sbin/bconsole"
+cfg_path = "/etc/bacula/bconsole.conf"
+use_sudo = "1"
+
+[jsontools]
+enabled = "1"
+use_sudo = "1"
+bconfig_dir = "/var/www/bacula"
+bdirjson_path = "/usr/lib/bacula/bdirjson"
+dir_cfg_path = "/etc/bacula/bacula-dir.conf"
+bsdjson_path = "/usr/lib/bacula/bsdjson"
+sd_cfg_path = "/etc/bacula/bacula-sd.conf"
+bfdjson_path = "/usr/lib/bacula/bfdjson"
+fd_cfg_path = "/etc/bacula/bacula-fd.conf"
+bbconsjson_path = "/usr/lib/bacula/bbconsjson"
+bcons_cfg_path = "/etc/bacula/bconsole.conf"
+
+[actions]
+enabled = "1"
+use_sudo = "1"
+dir_start = "/etc/init.d/bacula-director start"
+dir_stop = "/etc/init.d/bacula-director stop"
+dir_restart = "/etc/init.d/bacula-director restart"
+sd_start = "/etc/init.d/bacula-sd start"
+sd_stop = "/etc/init.d/bacula-sd stop"
+sd_restart = "/etc/init.d/bacula-sd restart"
+fd_start = "/etc/init.d/bacula-fd start"
+fd_stop = "/etc/init.d/bacula-fd stop"
+fd_restart = "/etc/init.d/bacula-fd restart"
+

@@ -1,0 +1,68 @@
+FROM debian:buster
+
+LABEL maintainer="developer@s.vrx.pl"
+LABEL version="1.0"
+LABEL description="Bacula Server 11"
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG DB
+
+RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-include /usr/share/doc/*/copyright" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude /usr/share/man/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude /usr/share/groff/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude /usr/share/info/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude /usr/share/lintian/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    echo "path-exclude /usr/share/linda/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc&& \
+    apt update && apt install -y gnupg2 curl sudo && \
+    echo "deb http://www.bacula.org/downloads/baculum/stable-11/debian buster main" > /etc/apt/sources.list.d/baculum.list && \
+    echo "deb-src http://www.bacula.org/downloads/baculum/stable-11/debian buster main" >> /etc/apt/sources.list.d/baculum.list && \
+    echo "deb http://www.bacula.org/packages/614321e9d6b75/debs/11.0.5/buster/amd64 buster main" > /etc/apt/sources.list.d/bacula.list && \
+    curl -sL http://www.bacula.org/downloads/baculum/baculum.pub | apt-key add - && \
+    curl -sL https://www.bacula.org/downloads/Bacula-4096-Distribution-Verification-key.asc | apt-key add - && \
+    apt update && apt -y upgrade && apt install -y --no-install-recommends supervisor bacula-client bacula-common bacula-console bacula-${DB} apache2 baculum-api baculum-api-apache2 baculum-common baculum-web baculum-web-apache2 && \
+    apt --purge remove -y curl gnupg2 && \
+    apt autoremove -y && \
+    rm -rf /var/cache/apt/* && \
+    apt clean && \
+    mkdir -p /var/www/bacula && \
+    chown www-data:www-data /var/www/bacula && \
+    mkdir /home/bacula && \
+    mv /opt/bacula/scripts /home/bacula/ && \
+    mv /opt/bacula/etc /home/bacula/ && \
+    mv /opt/bacula/working /home/bacula/ && \
+    mv /etc/baculum /home/ && \
+    mkdir -p /mnt/bacula && \
+    mkdir -p /home/lib && \
+    mv /var/lib/bacula /home/lib/ && \
+    chown bacula:tape /home/lib/bacula && \
+    a2ensite baculum-api && \
+    a2ensite baculum-web && \
+    a2enmod rewrite && \
+    usermod -aG tape www-data && \
+    usermod -aG bacula www-data
+
+COPY conf/sudoers-11 /etc/sudoers
+COPY conf/bacula-fd.conf-11 /home/bacula/etc/bacula-fd.conf
+COPY conf/bacula-sd.conf-11 /home/bacula/etc/bacula-sd.conf
+COPY conf/bacula-dir.conf-${DB}-11 /home/bacula/etc/bacula-dir.conf
+COPY conf/bconsole.conf /home/bacula/etc/bconsole.conf
+COPY conf/api.conf-${DB}-11 /home/baculum/Config-api-apache/api.conf
+COPY conf/baculum.users /home/baculum/Config-api-apache/baculum.users
+COPY conf/baculum.users /home/baculum/Config-web-apache/baculum.users
+COPY conf/hosts.conf /home/baculum/Config-web-apache/hosts.conf
+COPY conf/users.conf-11 /home/baculum/Config-web-apache/users.conf
+COPY conf/settings.conf /home/baculum/Config-web-apache/settings.conf
+COPY db/bacula.sql-${DB}-11 /home/bacula.db
+COPY conf/supervisord.conf /etc/supervisord.conf
+COPY scripts/entrypoint.sh-${DB}-11 /usr/sbin/entrypoint.sh
+
+RUN chgrp bacula /home/bacula/etc/bacula-fd.conf && \
+    chgrp bacula /home/bacula/etc/bacula-sd.conf && \
+    chgrp bacula /home/bacula/etc/bacula-dir.conf 
+    
+VOLUME ["/opt/bacula/etc", "/opt/bacula/working", "/opt/bacula/log", "/etc/baculum", "/var/log/apache2"]
+
+EXPOSE 9101/tcp 9103/tcp 9095/tcp 9096/tcp
+
+ENTRYPOINT ["entrypoint.sh"]

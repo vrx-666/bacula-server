@@ -1,0 +1,49 @@
+#
+# Default  Bacula File Daemon Configuration file
+#
+#  For Bacula release 9.4.2 (04 February 2019) -- debian 10.5
+#
+# There is not much to change here except perhaps the
+# File daemon Name to
+#
+#
+# Copyright (C) 2000-2015 Kern Sibbald
+# License: BSD 2-Clause; see file LICENSE-FOSS
+#
+
+#
+# List Directors who are permitted to contact this File daemon
+#
+Director {
+  Name = bacula-dir
+  Password = "@FD_Password@"
+}
+
+#
+# Restricted Director, used by tray-monitor to get the
+#   status of the file daemon
+#
+Director {
+  Name = bacula-mon
+  Password = "@FD_Mon@"
+  Monitor = yes
+}
+
+#
+# "Global" File daemon configuration specifications
+#
+FileDaemon {                          # this is me
+  Name = bacula-fd
+  FDport = 9102                  # where we listen for the director
+  WorkingDirectory = /var/lib/bacula
+  Pid Directory = /run/bacula
+  Maximum Concurrent Jobs = 20
+  Plugin Directory = /usr/lib/bacula
+  FDAddress = 127.0.0.1
+}
+
+# Send all messages except skipped files back to Director
+Messages {
+  Name = Standard
+  director = bacula-dir = all, !skipped, !restored
+}

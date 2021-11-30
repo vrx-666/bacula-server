@@ -1,0 +1,46 @@
+#
+# This file MUST be edited with the 'visudo' command as root.
+#
+# Please consider adding local content in /etc/sudoers.d/ instead of
+# directly modifying this file.
+#
+# See the man page for details on how to write a sudoers file.
+#
+Defaults	env_reset
+Defaults	mail_badpass
+Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Host alias specification
+
+# User alias specification
+
+# Cmnd alias specification
+
+# User privilege specification
+root	ALL=(ALL:ALL) ALL
+
+# Allow members of group sudo to execute any command
+%sudo	ALL=(ALL:ALL) ALL
+
+# See sudoers(5) for more information on "#include" directives:
+
+#includedir /etc/sudoers.d
+Defaults:www-data !requiretty
+www-data ALL = (root) NOPASSWD: /usr/sbin/bconsole
+www-data ALL = (root) NOPASSWD: /usr/sbin/bdirjson
+www-data ALL = (root) NOPASSWD: /usr/sbin/bsdjson
+www-data ALL = (root) NOPASSWD: /usr/sbin/bfdjson
+www-data ALL = (root) NOPASSWD: /usr/sbin/bbconsjson
+www-data ALL = (root) NOPASSWD: /etc/init.d/bacula-fd start
+www-data ALL = (root) NOPASSWD: /etc/init.d/bacula-fd stop
+www-data ALL = (root) NOPASSWD: /etc/init.d/bacula-fd restart
+www-data ALL = (root) NOPASSWD: /etc/init.d/bacula-sd start
+www-data ALL = (root) NOPASSWD: /etc/init.d/bacula-sd stop
+www-data ALL = (root) NOPASSWD: /etc/init.d/bacula-sd restart
+www-data ALL = (root) NOPASSWD: /etc/init.d/bacula-director start
+www-data ALL = (root) NOPASSWD: /etc/init.d/bacula-director stop
+www-data ALL = (root) NOPASSWD: /etc/init.d/bacula-director restart
+www-data ALL = (root) NOPASSWD: /usr/lib/bacula/bdirjson
+www-data ALL = (root) NOPASSWD: /usr/lib/bacula/bsdjson
+www-data ALL = (root) NOPASSWD: /usr/lib/bacula/bfdjson
+www-data ALL = (root) NOPASSWD: /usr/lib/bacula/bbconsjson
