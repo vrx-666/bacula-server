@@ -1,7 +1,7 @@
 FROM debian:bullseye-slim
 
 LABEL maintainer="developer@s.vrx.pl"
-LABEL version="1.0"
+LABEL version="2.0"
 LABEL description="Bacula Server 9.6"
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -38,20 +38,20 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     usermod -aG tape www-data && \
     usermod -aG bacula www-data
 
-COPY conf/sudoers-9.6 /etc/sudoers
-COPY conf/bacula-fd.conf-9.6 /opt/bacula/bacula-fd.conf
-COPY conf/bacula-sd.conf-9.6 /opt/bacula/bacula-sd.conf
-COPY conf/bacula-dir.conf-${DB}-9.6 /opt/bacula/bacula-dir.conf
+COPY conf/9.6/sudoers /etc/sudoers
+COPY conf/9.6/bacula-fd.conf /opt/bacula/bacula-fd.conf
+COPY conf/9.6/bacula-sd.conf /opt/bacula/bacula-sd.conf
+COPY conf/9.6/${DB}/bacula-dir.conf /opt/bacula/bacula-dir.conf
 COPY conf/bconsole.conf /opt/bacula/bconsole.conf
-COPY conf/api.conf-${DB}-9.6 /opt/baculum/Config-api-apache/api.conf
+COPY conf/9.6/${DB}/api.conf /opt/baculum/Config-api-apache/api.conf
 COPY conf/baculum.users /opt/baculum/Config-api-apache/baculum.users
 COPY conf/baculum.users /opt/baculum/Config-web-apache/baculum.users
 COPY conf/hosts.conf /opt/baculum/Config-web-apache/hosts.conf
-COPY conf/users.conf-9.6 /opt/baculum/Config-web-apache/users.conf
+COPY conf/9.6/users.conf /opt/baculum/Config-web-apache/users.conf
 COPY conf/settings.conf /opt/baculum/Config-web-apache/settings.conf
-COPY db/bacula.sql-${DB}-9.6 /opt/bacula.db
+COPY db/9.6/${DB}/bacula.sql /opt/bacula.db
 COPY conf/supervisord.conf /etc/supervisord.conf
-COPY scripts/entrypoint.sh-${DB}-9.6 /usr/sbin/entrypoint.sh
+COPY scripts/9.6/${DB}/entrypoint.sh /usr/sbin/entrypoint.sh
 
 RUN chgrp bacula /opt/bacula/bacula-fd.conf && \
     chgrp bacula /opt/bacula/bacula-sd.conf && \
