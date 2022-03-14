@@ -147,4 +147,4 @@ echo "==> .......File Daemon..."
 echo "==> .......Bacula Director..."
 /etc/init.d/bacula-director start
 echo "==> .......Bacula Web..."
-/usr/bin/supervisord -n -c /etc/supervisord.conf
+exec "$@"

@@ -20,11 +20,12 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "deb http://www.bacula.org/packages/614321e9d6b75/debs/11.0.5/bullseye/amd64 bullseye main" > /etc/apt/sources.list.d/bacula.list && \
     curl -sL http://www.bacula.org/downloads/baculum/baculum.pub | apt-key add - && \
     curl -sL https://www.bacula.org/downloads/Bacula-4096-Distribution-Verification-key.asc | apt-key add - && \
-    apt update && apt -y upgrade && apt install -y --no-install-recommends supervisor bacula-client bacula-common bacula-console bacula-${DB} apache2 baculum-api baculum-api-apache2 baculum-common baculum-web baculum-web-apache2 && \
+    apt update && apt -y upgrade && apt install -y --no-install-recommends lsscsi fuse procinfo mtx mt-st pv mbuffer supervisor bacula-client bacula-common bacula-console bacula-${DB} apache2 baculum-api baculum-api-apache2 baculum-common baculum-web baculum-web-apache2 && \
     apt --purge remove -y curl gnupg2 && \
     apt autoremove -y && \
     rm -rf /var/cache/apt/* && \
     apt clean && \
+    echo "st" >> /etc/modules && \
     mkdir -p /var/www/bacula && \
     chown www-data:www-data /var/www/bacula && \
     mkdir /home/bacula && \
@@ -66,3 +67,4 @@ VOLUME ["/opt/bacula/etc", "/opt/bacula/working", "/opt/bacula/log", "/etc/bacul
 EXPOSE 9101/tcp 9103/tcp 9095/tcp 9096/tcp
 
 ENTRYPOINT ["entrypoint.sh"]
+CMD ["supervisord","-n","-c","/etc/supervisord.conf"]
