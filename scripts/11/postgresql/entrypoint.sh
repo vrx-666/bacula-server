@@ -55,6 +55,17 @@ DB_VARS=(
   DB_Port
 )
 
+SMTP_VARS=(
+  SMTP_Host
+  SMTP_Port
+)
+
+AUTH_VARS=(
+  SMTP_Host
+  SMTP_User
+  SMTP_Password
+)
+
 : ${check:=10}
 
 if [ ! -f /opt/bacula/etc/bacula-sd.conf ];then
@@ -170,6 +181,42 @@ htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Pass
 if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
         echo "" >> /etc/baculum/Config-web-apache/users.conf
         echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" >> /etc/baculum/Config-web-apache/users.conf
+fi
+
+cp /opt/exim-default-conf/update-exim4.conf.conf /etc/exim4/
+chown root:root /etc/exim4/update-exim4.conf.conf
+chmod 644 /etc/exim4/update-exim4.conf.conf
+cp /opt/exim-default-conf/passwd.client /etc/exim4/
+chown root:Debian-exim /etc/exim4/passwd.client
+chmod 640 /etc/exim4/passwd.client
+cp /opt/exim-default-conf/exim4.conf.template /etc/exim4/exim4.conf.template
+chown Debian-exim /var/log/exim4
+
+for c in ${SMTP_VARS[@]}; do
+        if [ -z $(eval echo \$$c) ];then
+        echo "==> ${c} must be set, exiting"
+        exit 1
+  fi
+  sed -i "s,@${c}@,$(eval echo \$$c)," /etc/exim4/update-exim4.conf.conf
+done
+
+for a in ${AUTH_VARS[@]}; do
+        if [ -z $(eval echo \$$a) ];then
+        echo "==> ${a} must be set, exiting"
+        exit 1
+  fi
+  sed -i "s,@${a}@,$(eval echo \$$a)," /etc/exim4/passwd.client
+  sed -i "s,@${a}@,$(eval echo \$$a)," /etc/exim4/exim4.conf.template
+done
+
+domain=$(echo "${SMTP_User}" | sed -e 's/.*@//g')
+sed -i "s,@domain@,$domain," /etc/exim4/update-exim4.conf.conf
+sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
+sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
+update-exim4.conf
+
+if [ ! -z ${SMTP_Host} ];then
+	sed -i '/;\[program:mailserver/,/;autorestart/{s/;//g}' /etc/supervisord.conf
 fi
 
 echo "==> Starting..."
