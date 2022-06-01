@@ -6,6 +6,8 @@
 : ${DB_Port:="5432"}
 : ${WEB_User:="admin"}
 : ${WEB_Password:="difficult"}
+: ${SMTP_User:="root"}
+: ${SMTP_User:="root"}
 : ${SD_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
 : ${Console_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
 : ${FD_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
