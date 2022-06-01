@@ -61,7 +61,6 @@ SMTP_VARS=(
 )
 
 AUTH_VARS=(
-  SMTP_Host
   SMTP_User
   SMTP_Password
 )
@@ -193,18 +192,10 @@ cp /opt/exim-default-conf/exim4.conf.template /etc/exim4/exim4.conf.template
 chown Debian-exim /var/log/exim4
 
 for c in ${SMTP_VARS[@]}; do
-        if [ -z $(eval echo \$$c) ];then
-        echo "==> ${c} must be set, exiting"
-        exit 1
-  fi
   sed -i "s,@${c}@,$(eval echo \$$c)," /etc/exim4/update-exim4.conf.conf
 done
 
 for a in ${AUTH_VARS[@]}; do
-        if [ -z $(eval echo \$$a) ];then
-        echo "==> ${a} must be set, exiting"
-        exit 1
-  fi
   sed -i "s,@${a}@,$(eval echo \$$a)," /etc/exim4/passwd.client
   sed -i "s,@${a}@,$(eval echo \$$a)," /etc/exim4/exim4.conf.template
 done
