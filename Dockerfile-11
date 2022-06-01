@@ -1,7 +1,7 @@
 FROM debian:bullseye
 
 LABEL maintainer="developer@s.vrx.pl"
-LABEL version="2.0"
+LABEL version="2.1"
 LABEL description="Bacula Server 11"
 
 ARG DEBIAN_FRONTEND=noninteractive

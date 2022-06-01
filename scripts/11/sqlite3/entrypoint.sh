@@ -2,6 +2,8 @@
 : ${SD_Host:=""}
 : ${WEB_User:="admin"}
 : ${WEB_Password:="difficult"}
+: ${SMTP_User:="root"}
+: ${EMAIL_Recipient:="root"}
 : ${SD_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
 : ${Console_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
 : ${FD_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
@@ -93,9 +95,11 @@ chown bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
 chown bacula:bacula /opt/bacula/working/bacula.db
 
-htpasswd -nbm ${WEB_User} ${WEB_Password} > /etc/baculum/Config-web-apache/baculum.users
-sed -i "s/^\[.*\]$/\[${WEB_User}\]/g" /etc/baculum/Config-web-apache/users.conf
-sed -i "s/^username =.*$/username = \"${WEB_User}\"/g" /etc/baculum/Config-web-apache/users.conf
+htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
+if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
+        echo "" >> /etc/baculum/Config-web-apache/users.conf
+        echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" >> /etc/baculum/Config-web-apache/users.conf
+fi
 
 echo "==> Starting..."
 echo "==> .......Storage Daemon..."

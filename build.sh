@@ -1,46 +1,25 @@
 #!/bin/bash
 # version 1.0
 
-function bacula_ver {
-	read -ep "Select bacula version: 1) Bacula11, 2) Bacula9.6 (Type 1 or 2): " -N 1 bversion
-	checker_ver
-}
-
 function db_connector {
-	read -ep "Select db connector: 1) postgresql, 2) mysql, 3) sqlite3 : " -N 1 dbconn
+	read -ep "Select db connector: 1) postgresql, 2) sqlite3 (q)uit: " -N 1 dbconn
 	checker_db
 }
 
 function checker_db {
 	if [ $dbconn == 1 ];then
 		database="postgresql"
-		bacula_ver
-	elif [ $dbconn == 2 ];then
-		database="mysql"
-		ver="9.6"
-		build_image
-	elif [ $dbconn == 3 ];then
-		database="sqlite3"
-		bacula_ver
-	else
-		echo -e "\nYou should type '1' or '2' or '3'"
-		db_connector
-	fi
-}
-
-function checker_ver {
-	if [ $bversion == 1 ];then
 		ver="11"
 		build_image
-	elif [ $bversion == 2 ];then
-		ver="9.6"
-		if [ $dbconn == 1 ];then
-			database="pgsql"
-		fi
+	elif [ $dbconn == 2 ];then
+		database="sqlite3"
+		ver="11"
 		build_image
+	elif [ $dbconn == "q" ];then
+		exit 0
 	else
 		echo -e "\nYou should type '1' or '2'"
-		bacula_ver
+		db_connector
 	fi
 }
 
