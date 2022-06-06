@@ -7,6 +7,9 @@ LABEL description="Bacula Server 11"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DB
 
+COPY baculum.pub /root/baculum.pub
+COPY Bacula.asc /root/Bacula.asc
+
 RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-include /usr/share/doc/*/copyright" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/man/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
@@ -18,8 +21,8 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "deb http://www.bacula.org/downloads/baculum/stable-11/debian bullseye main" > /etc/apt/sources.list.d/baculum.list && \
     echo "deb-src http://www.bacula.org/downloads/baculum/stable-11/debian bullseye main" >> /etc/apt/sources.list.d/baculum.list && \
     echo "deb http://www.bacula.org/packages/614321e9d6b75/debs/11.0.5/bullseye/amd64 bullseye main" > /etc/apt/sources.list.d/bacula.list && \
-    curl -sL http://www.bacula.org/downloads/baculum/baculum.pub | apt-key add - && \
-    curl -sL https://www.bacula.org/downloads/Bacula-4096-Distribution-Verification-key.asc | apt-key add - && \
+    cat /root/baculum.pub | apt-key add - && \
+    cat /root/Bacula.asc | apt-key add - && \
     apt update && apt -y upgrade && apt install -y --no-install-recommends lsscsi fuse procinfo mtx mt-st pv mbuffer supervisor bacula-client bacula-common bacula-console bacula-${DB} apache2 baculum-api baculum-api-apache2 baculum-common baculum-web baculum-web-apache2 && \
     apt --purge remove -y curl gnupg2 && \
     apt autoremove -y && \
