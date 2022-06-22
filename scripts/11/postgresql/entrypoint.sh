@@ -6,8 +6,11 @@
 : ${DB_Port:="5432"}
 : ${WEB_User:="admin"}
 : ${WEB_Password:="difficult"}
+: ${SMTP_Host:=""}
+: ${SMTP_Port:="587"}
 : ${SMTP_User:="root"}
-: ${SMTP_User:="root"}
+: ${SMTP_Password:=""}
+: ${EMAIL_Recipient:="root"}
 : ${SD_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
 : ${Console_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
 : ${FD_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
@@ -57,16 +60,14 @@ DB_VARS=(
 if [ ! -f /opt/bacula/etc/bacula-sd.conf ];then
 	echo "==> Creating Storage daemon config..."
 	cp -rp /home/bacula/etc/bacula-sd.conf /opt/bacula/etc/bacula-sd.conf
-	cp -rp /home/bacula/working /opt/bacula/
-	chown bacula:bacula /opt/bacula/etc/bacula-sd.conf
+	chgrp bacula /opt/bacula/etc/bacula-sd.conf
 	chmod g+w /opt/bacula/etc/bacula-sd.conf
 	check=$((check+1))
 fi
 if [ ! -f /opt/bacula/etc/bacula-fd.conf ];then
 	echo "==> Creating File daemon config..."
 	cp -rp /home/bacula/etc/bacula-fd.conf /opt/bacula/etc/bacula-fd.conf
-	cp -rp /home/bacula/working /opt/bacula/
-	chown bacula:bacula /opt/bacula/etc/bacula-fd.conf
+	chgrp bacula /opt/bacula/etc/bacula-fd.conf
 	chmod g+w /opt/bacula/etc/bacula-fd.conf
 	check=$((check+1))
 fi
@@ -74,9 +75,7 @@ if [ ! -f /opt/bacula/etc/bacula-dir.conf ];then
 	echo "==> Creating Bacula Director config..."
 	cp -rp /home/bacula/etc/bacula-dir.conf /opt/bacula/etc/bacula-dir.conf
 	cp -rp /home/bacula/etc/bconsole.conf /opt/bacula/etc/bconsole.conf
-	cp -rp /home/bacula/scripts /opt/bacula/
-	cp -rp /home/bacula/working /opt/bacula/
-	chown bacula:bacula /opt/bacula/etc/bacula-dir.conf
+	chgrp bacula /opt/bacula/etc/bacula-dir.conf
 	chmod g+w /opt/bacula/etc/bacula-dir.conf
 	check=$((check+1))
 fi
@@ -84,7 +83,14 @@ if [ ! -f /opt/bacula/etc/bconsole.conf ];then
 	cp -rp /home/bacula/etc/bconsole.conf /opt/bacula/etc/bconsole.conf
 	check=$((check+1))
 fi
-cp -rup /home/bacula/scripts /opt/bacula/
+
+chmod +x /opt/bacula/bin/*
+for file in $(ls -la /opt/bacula/scripts | grep "\-rwx" | awk '{print $NF}'); do 
+	chmod +x /opt/bacula/scripts/$file
+done
+chown -R bacula:bacula /opt/bacula/working
+chown bacula:tape /mnt/bacula
+chown bacula:tape /opt/bacula/log
 
 for c in ${CONFIG_VARS[@]}; do
   sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bacula-fd.conf
@@ -109,20 +115,28 @@ for d in ${DB_VARS[@]}; do
   sed -i "s,@${d}@,$(eval echo \$$d)," /etc/baculum/Config-api-apache/api.conf
 done
 
-sed -i "s/Owner: bacula/Owner: $DB_User/g" /home/bacula.db
-sed -i "s/OWNER TO bacula/OWNER TO $DB_User/g" /home/bacula.db
+sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
+sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
 
 check_conf=$(/opt/bacula/bin/bacula-dir -t)
 echo "==> Checking DB..."
 check_db=$(echo $check_conf | grep -i "Unable to connect" | wc -l)
 check_tb=$(echo $check_conf | grep -i "Could not open Catalog" | wc -l)
+
 if [ $check_db -gt 0 ];then
 	echo "==> Could not connect to database. Please check DB Settings: Host, User, Password, Port. exiting"
 	exit 1
 elif [ $check_tb -gt 0 ];then
 	if [ $check -eq 13 ] || [ $check -eq 14 ]; then
 		echo "==> Catalog database empty. Structure creating..."
-		PGPASSWORD=${DB_Password} psql -h ${DB_Host} -p ${DB_Port} bacula ${DB_User} < /home/bacula.db
+		sed -i 's/pre_command="su - postgres -c"/pre_command=""/' /opt/bacula/scripts/create_bacula_database
+		sed -i 's/pre_command="su - postgres -c"/pre_command=""/' /opt/bacula/scripts/make_bacula_tables
+		sed -i "s/CREATE DATABASE.*$//" /opt/bacula/scripts/create_postgresql_database
+		sed -i 's/^bindir.*//' /opt/bacula/scripts/make_postgresql_tables
+		sed -i "s/psql /PGPASSWORD=${DB_Password} psql -h ${DB_Host} -p ${DB_Port} -U ${DB_User} /g" /opt/bacula/scripts/create_postgresql_database
+		sed -i "s/psql /PGPASSWORD=${DB_Password} psql -h ${DB_Host} -p ${DB_Port} -U ${DB_User} /g" /opt/bacula/scripts/make_postgresql_tables
+		/opt/bacula/scripts/create_bacula_database
+		/opt/bacula/scripts/make_bacula_tables
 		sleep 5s
 	else
 		echo "==> It looks like You run bacula-server before. Configuration files are set, but database is empty. Make sure everything going right."
@@ -139,6 +153,10 @@ elif [ $check_tb -gt 0 ];then
 		fi
 	done
 	echo "" > /opt/bacula/log/bacula.log
+else
+	sed -i 's/pre_command="su - postgres -c"/pre_command=""/' /opt/bacula/scripts/update_bacula_tables
+	sed -i "s/psql /PGPASSWORD=${DB_Password} psql -h ${DB_Host} -p ${DB_Port} -U ${DB_User} /g" /opt/bacula/scripts/update_postgresql_tables
+	/opt/bacula/scripts/update_bacula_tables
 fi
 
 chown -R bacula:bacula /opt/bacula/working
@@ -147,8 +165,8 @@ chown bacula:tape /opt/bacula/log
 
 htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
 if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
-	echo "" >> /etc/baculum/Config-web-apache/users.conf
-	echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\""	>> /etc/baculum/Config-web-apache/users.conf
+        echo "" >> /etc/baculum/Config-web-apache/users.conf
+        echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" >> /etc/baculum/Config-web-apache/users.conf
 fi
 
 echo "==> Starting..."

@@ -2,7 +2,10 @@
 : ${SD_Host:=""}
 : ${WEB_User:="admin"}
 : ${WEB_Password:="difficult"}
+: ${SMTP_Host:=""}
+: ${SMTP_Port:="587"}
 : ${SMTP_User:="root"}
+: ${SMTP_Password:=""}
 : ${EMAIL_Recipient:="root"}
 : ${SD_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
 : ${Console_Password:="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c24)"}
@@ -15,6 +18,8 @@ if [ -z ${SD_Host} ];then
 	echo "==> SD_Host must be set, exiting"
 	exit 1
 fi
+
+chown bacula /home/bacula
 
 CONFIG_VARS=(
   SD_Host
@@ -31,16 +36,14 @@ CONFIG_VARS=(
 if [ ! -f /opt/bacula/etc/bacula-sd.conf ];then
 	echo "==> Creating Storage daemon config..."
 	cp -rp /home/bacula/etc/bacula-sd.conf /opt/bacula/etc/bacula-sd.conf
-	cp -rp /home/bacula/working /opt/bacula/
-	chown bacula:bacula /opt/bacula/etc/bacula-sd.conf
+	chgrp bacula /opt/bacula/etc/bacula-sd.conf
 	chmod g+w /opt/bacula/etc/bacula-sd.conf
 	check=$((check+1))
 fi
 if [ ! -f /opt/bacula/etc/bacula-fd.conf ];then
 	echo "==> Creating File daemon config..."
 	cp -rp /home/bacula/etc/bacula-fd.conf /opt/bacula/etc/bacula-fd.conf
-	cp -rp /home/bacula/working /opt/bacula/
-	chown bacula:bacula /opt/bacula/etc/bacula-fd.conf
+	chgrp bacula /opt/bacula/etc/bacula-fd.conf
 	chmod g+w /opt/bacula/etc/bacula-fd.conf
 	check=$((check+1))
 fi
@@ -48,9 +51,7 @@ if [ ! -f /opt/bacula/etc/bacula-dir.conf ];then
 	echo "==> Creating Bacula Director config..."
 	cp -rp /home/bacula/etc/bacula-dir.conf /opt/bacula/etc/bacula-dir.conf
 	cp -rp /home/bacula/etc/bconsole.conf /opt/bacula/etc/bconsole.conf
-	cp -rp /home/bacula/scripts /opt/bacula/
-	cp -rp /home/bacula/working /opt/bacula/
-	chown bacula:bacula /opt/bacula/etc/bacula-dir.conf
+	chgrp bacula /opt/bacula/etc/bacula-dir.conf
 	chmod g+w /opt/bacula/etc/bacula-dir.conf
 	check=$((check+1))
 fi
@@ -58,7 +59,14 @@ if [ ! -f /opt/bacula/etc/bconsole.conf ];then
 	cp -rp /home/bacula/etc/bconsole.conf /opt/bacula/etc/bconsole.conf
 	check=$((check+1))
 fi
-cp -rup /home/bacula/scripts /opt/bacula/
+
+chmod +x /opt/bacula/bin/*
+for file in $(ls -la /opt/bacula/scripts | grep "\-rwx" | awk '{print $NF}'); do 
+	chmod +x /opt/bacula/scripts/$file
+done
+chown -R bacula:bacula /opt/bacula/working
+chown bacula:tape /mnt/bacula
+chown bacula:tape /opt/bacula/log
 
 for c in ${CONFIG_VARS[@]}; do
   sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bacula-fd.conf
@@ -66,6 +74,9 @@ for c in ${CONFIG_VARS[@]}; do
   sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bacula-dir.conf
   sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bconsole.conf
 done
+
+sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
+sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
 
 if [ ! -d /etc/baculum/Config-api-apache ];then
 	echo "==> Creating Baculum API config..."
@@ -79,7 +90,11 @@ if [ ! -d /etc/baculum/Config-web-apache ];then
 fi
 if [ ! -f /opt/bacula/working/bacula.db ];then
 	echo "==> Catalog database missing. Creating..."
-	cp -rp /home/bacula.db /opt/bacula/working/bacula.db
+	sed -i 's/^echo //g' /opt/bacula/scripts/make_sqlite3_tables
+	sudo -u bacula /opt/bacula/scripts/create_bacula_database
+	sudo -u bacula /opt/bacula/scripts/make_bacula_tables
+else
+	sudo -u bacula /opt/bacula/scripts/update_bacula_tables
 fi
 
 check_conf=$(/opt/bacula/bin/bacula-dir -t)
@@ -88,7 +103,6 @@ if [ $check_tb -gt 0 ];then
 			echo "==> Probably there is problem with Your Catalog database... Exiting"
 			exit 1
 fi
-
 
 chown -R bacula:bacula /opt/bacula/working
 chown bacula:tape /mnt/bacula

@@ -8,7 +8,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG DB
 
 COPY baculum.pub /root/baculum.pub
-COPY Bacula.asc /root/Bacula.asc
 
 RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-include /usr/share/doc/*/copyright" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
@@ -20,50 +19,53 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     apt update && apt install -y gnupg2 curl sudo && \
     echo "deb http://www.bacula.org/downloads/baculum/stable-11/debian bullseye main" > /etc/apt/sources.list.d/baculum.list && \
     echo "deb-src http://www.bacula.org/downloads/baculum/stable-11/debian bullseye main" >> /etc/apt/sources.list.d/baculum.list && \
-    echo "deb http://www.bacula.org/packages/614321e9d6b75/debs/11.0.5/bullseye/amd64 bullseye main" > /etc/apt/sources.list.d/bacula.list && \
     cat /root/baculum.pub | apt-key add - && \
-    cat /root/Bacula.asc | apt-key add - && \
-    apt update && apt -y upgrade && apt install -y --no-install-recommends lsscsi fuse procinfo mtx mt-st pv mbuffer supervisor bacula-client bacula-common bacula-console bacula-${DB} apache2 baculum-api baculum-api-apache2 baculum-common baculum-web baculum-web-apache2 && \
-    apt --purge remove -y curl gnupg2 && \
-    apt autoremove -y && \
-    rm -rf /var/cache/apt/* && \
-    apt clean && \
-    echo "st" >> /etc/modules && \
+    if [ "$DB" = "postgresql" ] ; then apt update && apt -y upgrade && apt install -y --no-install-recommends lsscsi fuse procinfo pv mbuffer supervisor apache2 baculum-api baculum-api-apache2 baculum-common baculum-web baculum-web-apache2 libncurses-dev libpq-dev g++ make postgresql-client ; fi && \
+    if [ "$DB" = "sqlite3" ] ; then apt update && apt -y upgrade && apt install -y --no-install-recommends lsscsi fuse procinfo pv mbuffer supervisor apache2 baculum-api baculum-api-apache2 baculum-common baculum-web baculum-web-apache2 libncurses-dev  libsqlite3-dev sqlite3 g++ make ; fi && \
     mkdir -p /var/www/bacula && \
     chown www-data:www-data /var/www/bacula && \
-    mkdir /home/bacula && \
-    mv /opt/bacula/scripts /home/bacula/ && \
-    mv /opt/bacula/etc /home/bacula/ && \
-    mv /opt/bacula/working /home/bacula/ && \
     mv /etc/baculum /home/ && \
-    mkdir -p /mnt/bacula && \
-    mkdir -p /home/lib && \
-    mv /var/lib/bacula /home/lib/ && \
-    chown bacula:tape /home/lib/bacula && \
+    mkdir -p /opt/bacula && \
     a2ensite baculum-api && \
     a2ensite baculum-web && \
     a2enmod rewrite && \
+    useradd -M -d /opt/bacula -s /bin/bash bacula && \
     usermod -aG tape www-data && \
-    usermod -aG bacula www-data
+    usermod -aG bacula www-data && \ 
+    mkdir /opt/bacula_src && \
+    curl -s $(curl -s https://www.bacula.org/source-download-center/ | grep download-link | head -1 | sed -e 's/^.*href="//' -e 's/" rel.*$//') -o /opt/bacula_src/bacula_src.tgz && \
+    cd /opt/bacula_src && tar -zxvf bacula_src.tgz && \
+    mv $(find -maxdepth 1 -type d -name "bacula*") bacula_src && \
+    cd /opt/bacula_src/bacula_src && CFLAGS="-g -O2"    ./configure --sbindir=/opt/bacula/bin --sysconfdir=/opt/bacula/etc --with-scriptdir=/opt/bacula/scripts --with-pid-dir=/opt/bacula/working --with-subsys-dir=/opt/bacula/working --enable-smartalloc --with-${DB} --with-working-dir=/opt/bacula/working --with-dump-email=root --with-job-email=root --with-smtp-host=localhost --disable-ipv6 --enable-conio && \
+    make && \
+    make install && \
+    rm -rf /opt/bacula_src && \
+    mkdir /home/bacula && \
+    mv /opt/bacula/etc /home/bacula/ && \
+    mkdir /mnt/bacula && \
+    chown bacula:tape /mnt/bacula && \
+    ln -s /opt/bacula/bin/bconsole /usr/bin/bconsole && \
+    ln -s /usr/lib /opt/bacula/plugins && \
+    apt --purge remove -y gnupg2 curl make g++ && \
+    apt -y autoremove && apt clean all && \
+    rm -rf /var/cache/apt/*
 
-COPY conf/11/sudoers /etc/sudoers
-COPY conf/11/bacula-fd.conf /home/bacula/etc/bacula-fd.conf
 COPY conf/11/bacula-sd.conf /home/bacula/etc/bacula-sd.conf
+COPY conf/11/bacula-fd.conf /home/bacula/etc/bacula-fd.conf
 COPY conf/11/${DB}/bacula-dir.conf /home/bacula/etc/bacula-dir.conf
 COPY conf/bconsole.conf /home/bacula/etc/bconsole.conf
+COPY conf/11/sudoers /etc/sudoers
 COPY conf/11/${DB}/api.conf /home/baculum/Config-api-apache/api.conf
 COPY conf/baculum.users /home/baculum/Config-api-apache/baculum.users
 COPY conf/baculum.users /home/baculum/Config-web-apache/baculum.users
 COPY conf/hosts.conf /home/baculum/Config-web-apache/hosts.conf
 COPY conf/11/users.conf /home/baculum/Config-web-apache/users.conf
 COPY conf/settings.conf /home/baculum/Config-web-apache/settings.conf
-COPY db/11/${DB}/bacula.sql /home/bacula.db
 COPY conf/supervisord.conf /etc/supervisord.conf
 COPY scripts/11/${DB}/entrypoint.sh /usr/sbin/entrypoint.sh
-
-RUN chgrp bacula /home/bacula/etc/bacula-fd.conf && \
-    chgrp bacula /home/bacula/etc/bacula-sd.conf && \
-    chgrp bacula /home/bacula/etc/bacula-dir.conf 
+COPY scripts/init/bacula-dir /etc/init.d/bacula-dir
+COPY scripts/init/bacula-fd /etc/init.d/bacula-fd
+COPY scripts/init/bacula-sd /etc/init.d/bacula-sd
     
 VOLUME ["/opt/bacula/etc", "/opt/bacula/working", "/opt/bacula/log", "/etc/baculum", "/var/log/apache2"]
 
