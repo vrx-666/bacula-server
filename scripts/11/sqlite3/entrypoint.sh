@@ -104,9 +104,6 @@ if [ $check_tb -gt 0 ];then
 			exit 1
 fi
 
-chown -R bacula:bacula /opt/bacula/working
-chown bacula:tape /mnt/bacula
-chown bacula:tape /opt/bacula/log
 chown bacula:bacula /opt/bacula/working/bacula.db
 
 htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}

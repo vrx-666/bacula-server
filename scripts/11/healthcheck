@@ -1,0 +1,64 @@
+#!/bin/bash
+
+now=$(date +%d%H%M)
+if [ "$now" == "010001" ] || [ "$now" == "010002" ]; then 
+	cp -p /var/log/apache2/baculum-web-access.log{,.old} && :> /var/log/apache2/baculum-web-access.log
+	cp -p /var/log/apache2/baculum-api-access.log{,.old} && :> /var/log/apache2/baculum-api-access.log
+	cp -p /var/log/apache2/baculum-web-error.log{,.old} && :> /var/log/apache2/baculum-web-error.log
+	cp -p /var/log/apache2/baculum-api-error.log{,.old} && :> /var/log/apache2/baculum-api-error.log
+fi
+
+health=0
+
+#checking director
+dir_pid=$(cat /opt/bacula/working/*dir*pid)
+dir_check=$(ps aux | grep $dir_pid | grep -v grep | wc -l)
+if [ "$dir_pid" != "" ] && [ "$dir_check" ]; then
+	health=$((health+1))
+fi
+
+#checking sd
+sd_pid=$(cat /opt/bacula/working/*sd*pid)
+sd_check=$(ps aux | grep $sd_pid | grep -v grep | wc -l)
+if [ "$sd_pid" != "" ] && [ $sd_check != 0 ]; then
+	health=$((health+2))
+fi
+
+#checking fd
+fd_pid=$(cat /opt/bacula/working/*fd*pid)
+fd_check=$(ps aux | grep $fd_pid | grep -v grep | wc -l)
+if [ "$fd_pid" != "" ] && [ $fd_check != 0 ]; then
+	health=$((health+4))
+fi
+
+#checking web
+web_pid=$(cat /run/apache2/apache2.pid)
+web_check=$(ps aux | grep $web_pid | grep -v grep | wc -l)
+if [ "$web_pid" != "" ] && [ "$web_check" ]; then
+	health=$((health+8))
+fi
+
+#checking supervisor
+sup_pid=$(cat /run/supervisord.pid)
+sup_check=$(ps aux | grep $sup_pid | grep -v grep | wc -l)
+if [ "$sup_pid" != "" ] && [ "$sup_check" ]; then
+	health=$((health+16))
+fi
+
+#checking baculum
+bac=$(curl -s -I localhost:9095 | grep HTTP | cut -d " " -f 2)
+if [ "$bac" = "401" ]; then
+	health=$((health+32))
+fi
+
+#checking baculum-api
+apibac=$(curl -s -I localhost:9096 | grep HTTP | cut -d " " -f 2)
+if [ "$apibac" = "401" ]; then
+	health=$((health+64))
+fi
+
+if [ "$health" == 127 ]; then
+	exit 0
+else
+	exit 1
+fi
