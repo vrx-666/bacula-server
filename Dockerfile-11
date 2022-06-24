@@ -47,6 +47,13 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     ln -s /opt/bacula/bin/bconsole /usr/bin/bconsole && \
     ln -s /usr/lib /opt/bacula/plugins && \
     echo "ServerName 127.0.0.1" >> /etc/apache2/apache2.conf && \
+    sed -i 's/^DIR_USER=/DIR_USER="bacula"/' /opt/bacula/scripts/bacula-ctl-dir && \
+    sed -i 's/^DIR_GROUP=/DIR_GROUP="bacula"/' /opt/bacula/scripts/bacula-ctl-dir && \
+    sed -i 's/^SD_USER=/SD_USER="bacula"/' /opt/bacula/scripts/bacula-ctl-sd && \
+    sed -i 's/^SD_GROUP=/SD_GROUP="tape"/' /opt/bacula/scripts/bacula-ctl-sd && \
+    ln -s /opt/bacula/scripts/bacula-ctl-dir /etc/init.d/bacula-dir && \
+    ln -s /opt/bacula/scripts/bacula-ctl-sd /etc/init.d/bacula-sd && \
+    ln -s /opt/bacula/scripts/bacula-ctl-fd /etc/init.d/bacula-fd && \
     apt --purge remove -y gnupg2 make g++ && \
     apt -y autoremove && apt clean all && \
     rm -rf /var/cache/apt/*
@@ -64,16 +71,13 @@ COPY conf/11/users.conf /home/baculum/Config-web-apache/users.conf
 COPY conf/settings.conf /home/baculum/Config-web-apache/settings.conf
 COPY conf/supervisord.conf /etc/supervisord.conf
 COPY scripts/11/${DB}/entrypoint.sh /usr/sbin/entrypoint.sh
-COPY scripts/init/bacula-dir /etc/init.d/bacula-dir
-COPY scripts/init/bacula-fd /etc/init.d/bacula-fd
-COPY scripts/init/bacula-sd /etc/init.d/bacula-sd
 COPY scripts/11/healthcheck /usr/bin/healthcheck
     
 VOLUME ["/opt/bacula/etc", "/opt/bacula/working", "/opt/bacula/log", "/etc/baculum", "/var/log/apache2"]
 
 EXPOSE 9101/tcp 9103/tcp 9095/tcp 9096/tcp
 
-HEALTHCHECK --interval=120s --timeout=60s --start-period=60s \  
+HEALTHCHECK --interval=120s --timeout=10s --start-period=60s \  
     CMD bash healthcheck
 
 ENTRYPOINT ["entrypoint.sh"]
