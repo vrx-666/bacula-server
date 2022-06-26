@@ -60,14 +60,14 @@ DB_VARS=(
 if [ ! -f /opt/bacula/etc/bacula-sd.conf ];then
 	echo "==> Creating Storage daemon config..."
 	cp -rp /home/bacula/etc/bacula-sd.conf /opt/bacula/etc/bacula-sd.conf
-	chgrp bacula /opt/bacula/etc/bacula-sd.conf
+	chown bacula:tape /opt/bacula/etc/bacula-sd.conf
 	chmod g+w /opt/bacula/etc/bacula-sd.conf
 	check=$((check+1))
 fi
 if [ ! -f /opt/bacula/etc/bacula-fd.conf ];then
 	echo "==> Creating File daemon config..."
 	cp -rp /home/bacula/etc/bacula-fd.conf /opt/bacula/etc/bacula-fd.conf
-	chgrp bacula /opt/bacula/etc/bacula-fd.conf
+	chown bacula:bacula /opt/bacula/etc/bacula-fd.conf
 	chmod g+w /opt/bacula/etc/bacula-fd.conf
 	check=$((check+1))
 fi
@@ -75,7 +75,7 @@ if [ ! -f /opt/bacula/etc/bacula-dir.conf ];then
 	echo "==> Creating Bacula Director config..."
 	cp -rp /home/bacula/etc/bacula-dir.conf /opt/bacula/etc/bacula-dir.conf
 	cp -rp /home/bacula/etc/bconsole.conf /opt/bacula/etc/bconsole.conf
-	chgrp bacula /opt/bacula/etc/bacula-dir.conf
+	chown bacula:bacula /opt/bacula/etc/bacula-dir.conf
 	chmod g+w /opt/bacula/etc/bacula-dir.conf
 	check=$((check+1))
 fi
@@ -89,7 +89,7 @@ for file in $(ls -la /opt/bacula/scripts | grep "\-rwx" | awk '{print $NF}'); do
 	chmod +x /opt/bacula/scripts/$file
 done
 chown -R bacula:bacula /opt/bacula/working
-chown bacula:tape /mnt/bacula
+chown -R bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
 
 for c in ${CONFIG_VARS[@]}; do
@@ -160,8 +160,9 @@ else
 fi
 
 chown -R bacula:bacula /opt/bacula/working
-chown bacula:tape /mnt/bacula
+chown -R bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
+chown -R bacula:bacula /opt/bacula/etc
 
 htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
 if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
