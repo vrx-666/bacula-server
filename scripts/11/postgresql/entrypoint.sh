@@ -162,7 +162,9 @@ fi
 chown -R bacula:bacula /opt/bacula/working
 chown -R bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
+chmod 777 /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
+chmod 777 /opt/bacula/etc
 
 htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
 if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then

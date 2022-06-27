@@ -90,7 +90,7 @@ if [ ! -d /etc/baculum/Config-web-apache ];then
 fi
 if [ ! -f /opt/bacula/working/bacula.db ];then
 	echo "==> Catalog database missing. Creating..."
-	sed -i 's/^echo //g' /opt/bacula/scripts/make_sqlite3_tables
+	sed -i 's/^echo .*$//g' /opt/bacula/scripts/make_sqlite3_tables
 	sudo -u bacula /opt/bacula/scripts/create_bacula_database
 	sudo -u bacula /opt/bacula/scripts/make_bacula_tables
 else
@@ -105,9 +105,10 @@ if [ $check_tb -gt 0 ];then
 fi
 
 chown bacula:bacula /opt/bacula/working/bacula.db
-chown -R bacual:bacula /opt/bacula/etc
+chown -R bacula:bacula /opt/bacula/etc
 chown -R bacula:bacula /opt/bacula/working
 chown -R bacula:tape /mnt/bacula
+chmod 777 /opt/bacula/log /opt/bacula/etc
 
 htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
 if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
