@@ -71,7 +71,7 @@ docker run -d --name='Bacula Server' \
 -v '/mnt/docker/bacula-server/log/bacula':'/var/log/bacula' \
 -v '/mnt/docker/bacula-server/log/apache2':'/var/log/apache2' \
 -v '/mnt/docker/bacula-server/baculum':'/etc/baculum' \
-pwa666/bacula-server:9.6-pgsql-latest
+pwa666/bacula-server:11-postgresql-latest
 ```
 
 # End of development for Bacula9.6
