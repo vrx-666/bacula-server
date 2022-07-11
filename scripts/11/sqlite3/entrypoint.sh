@@ -107,7 +107,7 @@ fi
 chown bacula:bacula /opt/bacula/working/bacula.db
 chown -R bacula:bacula /opt/bacula/etc
 chown -R bacula:bacula /opt/bacula/working
-chown -R bacula:tape /mnt/bacula
+chown -R bacula:tape $(grep -E "Archive.*Device.*=" /opt/bacula/etc/bacula-sd.conf|grep -v "/dev/"|awk -F "=" '{print $2}'|sort -u|tr "\n" " "|tr -d '"')
 chmod 777 /opt/bacula/log /opt/bacula/etc
 
 htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}

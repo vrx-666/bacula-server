@@ -160,7 +160,7 @@ else
 fi
 
 chown -R bacula:bacula /opt/bacula/working
-chown -R bacula:tape /mnt/bacula
+chown -R bacula:tape $(grep -E "Archive.*Device.*=" /opt/bacula/etc/bacula-sd.conf|grep -v "/dev/"|awk -F "=" '{print $2}'|sort -u|tr "\n" " "|tr -d '"')
 chown bacula:tape /opt/bacula/log
 chmod 777 /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
