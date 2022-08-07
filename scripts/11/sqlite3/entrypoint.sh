@@ -60,7 +60,7 @@ if [ ! -f /opt/bacula/etc/bconsole.conf ];then
 	check=$((check+1))
 fi
 
-chmod +x /opt/bacula/bin/*
+chmod +rx /opt/bacula/bin/*
 for file in $(ls -la /opt/bacula/scripts | grep "\-rwx" | awk '{print $NF}'); do 
 	chmod +x /opt/bacula/scripts/$file
 done
