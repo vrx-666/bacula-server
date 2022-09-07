@@ -113,11 +113,12 @@ if [ $check_tb -gt 0 ];then
 			exit 1
 fi
 
-chown bacula:bacula /opt/bacula/working/bacula.db
-chown -R bacula:bacula /opt/bacula/etc
 chown -R bacula:bacula /opt/bacula/working
 chown -R bacula:tape $(grep -E "Archive.*Device.*=" /opt/bacula/etc/bacula-sd.conf|grep -v "/dev/"|awk -F "=" '{print $2}'|sort -u|tr "\n" " "|tr -d '"')
 chmod 777 /opt/bacula/log /opt/bacula/etc
+chown bacula:tape /opt/bacula/log
+chown -R bacula:bacula /opt/bacula/etc
+chown bacula:bacula /opt/bacula/working/bacula.db
 
 htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
 if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then

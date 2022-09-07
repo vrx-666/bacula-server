@@ -109,6 +109,9 @@ for c in ${CONFIG_VARS[@]}; do
   sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bconsole.conf
 done
 
+sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
+sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
+
 if [ ! -d /etc/baculum/Config-api-apache ];then
 	echo "==> Creating Baculum API config..."
 	cp -rp /home/baculum/Config-api-apache /etc/baculum/
@@ -125,8 +128,6 @@ for d in ${DB_VARS[@]}; do
   sed -i "s,@${d}@,$(eval echo \$$d)," /etc/baculum/Config-api-apache/api.conf
 done
 
-sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
-sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
 
 check_conf=$(/opt/bacula/bin/bacula-dir -t)
 echo "==> Checking DB..."
@@ -171,10 +172,9 @@ fi
 
 chown -R bacula:bacula /opt/bacula/working
 chown -R bacula:tape $(grep -E "Archive.*Device.*=" /opt/bacula/etc/bacula-sd.conf|grep -v "/dev/"|awk -F "=" '{print $2}'|sort -u|tr "\n" " "|tr -d '"')
+chmod 777 /opt/bacula/log /opt/bacula/etc
 chown bacula:tape /opt/bacula/log
-chmod 777 /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
-chmod 777 /opt/bacula/etc
 
 htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
 if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
