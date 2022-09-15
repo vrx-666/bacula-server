@@ -29,7 +29,14 @@ SD_Host - most cases host IP Address should be set
         (the IP address where the bacula will be reachable by clients/computers)
 WEB_User - bacula app username (default: admin)
 WEB_Password - bacula app password (default: difficult)
+EMAIL_Recipient - email address where You want bacula send notifications
+SMTP_Host - address of Your email provider's smtp server
+SMTP_User - Email sender login (could be: user@domain or user, check Your email provider documentation)
+SMTP_Password - Password for email sender account
+SMTP_Port - smtp port for Your email provider smtp server (check provider documentation) - Yes this is ENV Variable not Docker Port
 ```
+If You want to send email notification, You should set container hostname as Your Reverse DNS (Public). Some email providers could Reject email without propper hostname
+
 # Ports
 ```
 9095 - Bacula Web
