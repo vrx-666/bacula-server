@@ -1,5 +1,5 @@
 #!/bin/bash
-# version 1.0
+# version 1.1
 
 function db_connector {
 	read -ep "Select db connector: 1) postgresql, 2) sqlite3 (q)uit: " -N 1 dbconn
@@ -39,28 +39,16 @@ elif [ "$#" == "2" ]; then
 			database="postgresql"
 			ver="11"
 			build_image
-		elif [ $1 == "9.6" ]; then
-			database="pgsql"
-			ver="9.6"
-			build_image
 		fi
 	elif [ "$2" == "mysql" ]; then
 		if [ $1 == "11" ]; then
 			echo "There is no version 11 with mysql"
 			exit 2
-		elif [ $1 == "9.6" ]; then
-			database="mysql"
-			ver="9.6"
-			build_image
 		fi
 	elif [ "$2" == "sqlite" ] || [ "$2" == "sqlite3" ]; then
 		if [ $1 == "11" ]; then
 			database="sqlite3"
 			ver="11"
-			build_image
-		elif [ $1 == "9.6" ]; then
-			database="sqlite3"
-			ver="9.6"
 			build_image
 		fi
 	fi
