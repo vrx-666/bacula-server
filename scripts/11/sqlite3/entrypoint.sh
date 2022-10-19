@@ -116,7 +116,7 @@ fi
 chown -R bacula:bacula /opt/bacula/working
 chown -R bacula:tape $(grep -E "Archive.*Device.*=" /opt/bacula/etc/bacula-sd.conf|grep -v "/dev/"|awk -F "=" '{print $2}'|sort -u|tr "\n" " "|tr -d '"')
 chmod 777 /opt/bacula/log /opt/bacula/etc
-chown bacula:tape /opt/bacula/log
+chown -R bacula:tape /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
 chown bacula:bacula /opt/bacula/working/bacula.db
 
