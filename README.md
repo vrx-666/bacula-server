@@ -1,11 +1,11 @@
 # Bacula Server with Baculum App (web Interface)
 Bacula Client configured to backup database by default. Could be reconfigured to backup config files.<br>
-Two version available: Bacula 9.6 or Bacula 11 <br>
-Version 9.6 allows to use the mysql or postgresql as well as sqlite3 database.<br>
+Two version available: ~~Bacula 9.6~~ or Bacula 11 <br>
+~~Version 9.6 allows to use the mysql or postgresql as well as sqlite3 database.~~<br>
 Version 11 allows to use the postgresql or sqlite3 database.<br>
 Sqlite3 version creates db locally, for mysql or postgresql need to have separate db server working.<br>
-For mysql or postgresql create db named "bacula" with coresponding user.<br>
-For postgresql use SQL_ASCII encoding to avoid application warnings.<br>
+For ~~mysql or~~ postgresql create db named "bacula" with coresponding user.<br>
+For postgresql use SQL_ASCII encoding and postgres<=14 to avoid application warnings.<br>
 
 # How to build
 Pull this repository and run "build.sh"
