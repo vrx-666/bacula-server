@@ -175,6 +175,7 @@ chown -R bacula:tape $(grep -E "Archive.*Device.*=" /opt/bacula/etc/bacula-sd.co
 chmod 777 /opt/bacula/log /opt/bacula/etc
 chown -R bacula:tape /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
+chmod g+w /opt/bacula/etc/bconsole.conf
 
 htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
 if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
