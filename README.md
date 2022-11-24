@@ -1,10 +1,9 @@
 # Bacula Server with Baculum App (web Interface)
+Bacula 13 <br>
 Bacula Client configured to backup database by default. Could be reconfigured to backup config files.<br>
-Two version available: Bacula 9.6 or Bacula 13 <br>
-Version 9.6 allows to use the mysql or postgresql as well as sqlite3 database.<br>
-Version 11 allows to use the postgresql or sqlite3 database.<br>
-Sqlite3 version creates db locally, for mysql or postgresql need to have separate db server working.<br>
-For mysql or postgresql create db named "bacula" with coresponding user.<br>
+Allows to use the postgresql or sqlite3 database.<br>
+Sqlite3 version creates db locally, for postgresql need to have separate db server working.<br>
+For postgresql create db named "bacula" with coresponding user.<br>
 For postgresql use SQL_ASCII encoding to avoid application warnings.<br>
 
 # How to build
@@ -14,7 +13,7 @@ Pull this repository and run "build.sh"
 ```
 
 # ENV
-postgreSQL & mySQL versions:
+postgreSQL version:
 ```
 DB_Host - database ip
 DB_Port - database port (could be omitted if default)
@@ -45,7 +44,7 @@ If You want to send email notification, You should set container hostname as You
 9101 - Bacula Director (could be omitted if no remote management is needed)
 ```
 # Mounts
-version 11:
+version 13:
 ```
 /opt/bacula/etc - bacula configuration files
 /etc/baculum - baculum app configuration
@@ -53,15 +52,6 @@ version 11:
 /opt/bacula/working - bacula working directory (sqlite db, bacula db dump for backups)
 /opt/bacula/log - bacula logs
 /var/log/apache2 - baculum logs
-```
-
-version 9.6:
-```
-/etc/bacula - bacula configuration
-/etc/baculum - baculum app configuration
-/var/lib/bacula - bacula working directory
-/var/log/bacula - bacula logs
-/var/log/apache2 - baculum app logs
 ```
 
 # Exaple run command
@@ -72,13 +62,11 @@ docker run -d --name='Bacula Server' \
 -e 'DB_Host'='192.168.1.100' -e 'DB_User'='username' -e 'DB_Password'='password' \
 -e 'WEB_User'='admin' -e 'WEB_Password'='difficult' \
 -p '9103:9103' -p '9095:9095' \
--v '/mnt/docker/bacula-server/working':'/var/lib/bacula' \
--v '/mnt/docker/bacula-server/etc':'/etc/bacula' \
+-v '/mnt/docker/bacula-server/working':'/opt/bacula/working' \
+-v '/mnt/docker/bacula-server/etc':'/mnt/bacula/etc' \
 -v '/mnt/docker/bacula-server/storage':'/mnt/bacula' \
--v '/mnt/docker/bacula-server/log/bacula':'/var/log/bacula' \
+-v '/mnt/docker/bacula-server/log/bacula':'/opt/bacula/log' \
 -v '/mnt/docker/bacula-server/log/apache2':'/var/log/apache2' \
 -v '/mnt/docker/bacula-server/baculum':'/etc/baculum' \
-pwa666/bacula-server:11-postgresql-latest
+bacula-server:13-postgresql
 ```
-
-# End of development for Bacula9.6
