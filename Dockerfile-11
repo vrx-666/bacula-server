@@ -43,7 +43,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     make install && \
     rm -rf /opt/bacula_src && \
     mkdir -p /opt/vchanger_src  && \
-    curl -s -L https://sourceforge.net/projects/vchanger/files/vchanger/1.0.3/vchanger-1.0.3.tar.gz > /opt/vchanger_src/vchanger.tgz && \
+    curl -s -L $(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/$(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/ | grep folder | grep href | grep files_name_h | head -1 | sed -e 's/.*a href="\/projects\/vchanger\/files\/vchanger\///g' -e 's/" title.*//g') |  grep href | grep tar.gz | grep files_name_h | sed -e 's/.*a href="//g' -e 's/\/download" title.*//g') > /opt/vchanger_src/vchanger.tgz && \
     cd /opt/vchanger_src && tar -zxf vchanger.tgz && \
     cd /opt/vchanger_src/vchanger && ./configure && make && make install-strip && \
     rm -rf /opt/vchanger_src && \
