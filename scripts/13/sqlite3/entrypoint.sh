@@ -74,6 +74,7 @@ for file in $(ls -la /opt/bacula/scripts | grep "\-rwx" | awk '{print $NF}'); do
 	chmod +x /opt/bacula/scripts/$file
 done
 chown -R bacula:bacula /opt/bacula/working
+chmod -R g+w /opt/bacula/working
 chown -R bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
 
@@ -87,16 +88,10 @@ done
 sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
 sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
 
-if [ ! -d /etc/baculum/Config-api-apache ];then
-	echo "==> Creating Baculum API config..."
-	cp -rp /home/baculum/Config-api-apache /etc/baculum/
-	chown -R www-data:www-data /etc/baculum/Config-api-apache
-fi
-if [ ! -d /etc/baculum/Config-web-apache ];then
-	echo "==> Creating Baculum Web config..."
-	cp -rp /home/baculum/Config-web-apache /etc/baculum/
-	chown -R www-data:www-data /etc/baculum/Config-web-apache
-fi
+echo "==> Checking Bacularis config..."
+cp -rpn /home/bacularis /etc/
+chown -R www-data:www-data /etc/bacularis
+
 if [ ! -f /opt/bacula/working/bacula.db ];then
 	echo "==> Catalog database missing. Creating..."
 	sed -i 's/^echo .*$//g' /opt/bacula/scripts/make_sqlite3_tables
@@ -120,10 +115,11 @@ chown -R bacula:tape /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
 chown bacula:bacula /opt/bacula/working/bacula.db
 
-htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
-if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
-        echo "" >> /etc/baculum/Config-web-apache/users.conf
-        echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" >> /etc/baculum/Config-web-apache/users.conf
+htpasswd -bm /etc/bacularis/API/bacularis.users ${WEB_User} ${WEB_Password}
+htpasswd -bm /etc/bacularis/Web/bacularis.users ${WEB_User} ${WEB_Password}
+if [ `grep "\[${WEB_User}\]" /etc/bacularis/Web/users.conf | wc -l` -lt 1 ];then
+        echo "" >> /etc/bacularis/Web/users.conf
+        echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" >> /etc/bacularis/Web/users.conf
 fi
 
 cp /opt/exim-default-conf/update-exim4.conf.conf /etc/exim4/

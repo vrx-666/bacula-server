@@ -99,6 +99,7 @@ for file in $(ls -la /opt/bacula/scripts | grep "\-rwx" | awk '{print $NF}'); do
 	chmod +x /opt/bacula/scripts/$file
 done
 chown -R bacula:bacula /opt/bacula/working
+chmod -R g+w /opt/bacula/working
 chown -R bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
 
@@ -112,20 +113,13 @@ done
 sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
 sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
 
-if [ ! -d /etc/baculum/Config-api-apache ];then
-	echo "==> Creating Baculum API config..."
-	cp -rp /home/baculum/Config-api-apache /etc/baculum/
-	chown -R www-data:www-data /etc/baculum/Config-api-apache
-fi
-if [ ! -d /etc/baculum/Config-web-apache ];then
-	echo "==> Creating Baculum Web config..."
-	cp -rp /home/baculum/Config-web-apache /etc/baculum/
-	chown -R www-data:www-data /etc/baculum/Config-web-apache
-fi
+echo "==> Checking Bacularis config..."
+cp -rpn /home/bacularis /etc/
+chown -R www-data:www-data /etc/bacularis
 
 for d in ${DB_VARS[@]}; do
   sed -i "s,@${d}@,$(eval echo \$$d)," /opt/bacula/etc/bacula-dir.conf
-  sed -i "s,@${d}@,$(eval echo \$$d)," /etc/baculum/Config-api-apache/api.conf
+  sed -i "s,@${d}@,$(eval echo \$$d)," /etc/bacularis/API/api.conf
 done
 
 
@@ -133,8 +127,13 @@ check_conf=$(/opt/bacula/bin/bacula-dir -t)
 echo "==> Checking DB..."
 check_db=$(echo $check_conf | grep -i "Unable to connect" | wc -l)
 check_tb=$(echo $check_conf | grep -i "Could not open Catalog" | wc -l)
+check_version=$(echo $check_conf | grep -i "Version error for database" | wc -l)
 
-if [ $check_db -gt 0 ];then
+if [ $check_version -gt 0 ];then
+	sed -i 's/pre_command="su - postgres -c"/pre_command=""/' /opt/bacula/scripts/update_bacula_tables
+	sed -i "s/psql /PGPASSWORD=${DB_Password} psql -h ${DB_Host} -p ${DB_Port} -U ${DB_User} /g" /opt/bacula/scripts/update_postgresql_tables
+	/opt/bacula/scripts/update_bacula_tables
+elif [ $check_db -gt 0 ];then
 	echo "==> Could not connect to database. Please check DB Settings: Host, User, Password, Port. exiting"
 	exit 1
 elif [ $check_tb -gt 0 ];then
@@ -165,9 +164,8 @@ elif [ $check_tb -gt 0 ];then
 	done
 	echo "" > /opt/bacula/log/bacula.log
 else
-	sed -i 's/pre_command="su - postgres -c"/pre_command=""/' /opt/bacula/scripts/update_bacula_tables
-	sed -i "s/psql /PGPASSWORD=${DB_Password} psql -h ${DB_Host} -p ${DB_Port} -U ${DB_User} /g" /opt/bacula/scripts/update_postgresql_tables
-	/opt/bacula/scripts/update_bacula_tables
+	echo "===> Unknown error while checking database"
+	exit 1
 fi
 
 chown -R bacula:bacula /opt/bacula/working
@@ -176,10 +174,11 @@ chmod 777 /opt/bacula/log /opt/bacula/etc
 chown -R bacula:tape /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
 
-htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
-if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
-        echo "" >> /etc/baculum/Config-web-apache/users.conf
-        echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" >> /etc/baculum/Config-web-apache/users.conf
+htpasswd -bm /etc/bacularis/API/bacularis.users ${WEB_User} ${WEB_Password}
+htpasswd -bm /etc/bacularis/Web/bacularis.users ${WEB_User} ${WEB_Password}
+if [ `grep "\[${WEB_User}\]" /etc/bacularis/Web/users.conf | wc -l` -lt 1 ];then
+        echo "" >> /etc/bacularis/Web/users.conf
+        echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" >> /etc/bacularis/Web/users.conf
 fi
 
 cp /opt/exim-default-conf/update-exim4.conf.conf /etc/exim4/
