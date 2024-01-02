@@ -163,9 +163,6 @@ elif [ $check_tb -gt 0 ];then
 		fi
 	done
 	echo "" > /opt/bacula/log/bacula.log
-else
-	echo "===> Unknown error while checking database"
-	exit 1
 fi
 
 chown -R bacula:bacula /opt/bacula/working
