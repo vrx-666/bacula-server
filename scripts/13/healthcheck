@@ -2,10 +2,8 @@
 
 now=$(date +%d%H%M)
 if [ "$now" == "010001" ] || [ "$now" == "010002" ]; then 
-	cp -p /var/log/apache2/baculum-web-access.log{,.old} && :> /var/log/apache2/baculum-web-access.log
-	cp -p /var/log/apache2/baculum-api-access.log{,.old} && :> /var/log/apache2/baculum-api-access.log
-	cp -p /var/log/apache2/baculum-web-error.log{,.old} && :> /var/log/apache2/baculum-web-error.log
-	cp -p /var/log/apache2/baculum-api-error.log{,.old} && :> /var/log/apache2/baculum-api-error.log
+	cp -p /var/log/apache2/access.log{,.old} && :> /var/log/apache2/access.log
+	cp -p /var/log/apache2/error.log{,.old} && :> /var/log/apache2/error.log
 fi
 
 health=0
@@ -45,19 +43,13 @@ if [ "$sup_pid" != "" ] && [ "$sup_check" ]; then
 	health=$((health+16))
 fi
 
-#checking baculum
-bac=$(curl -s -I localhost:9095 | grep HTTP | cut -d " " -f 2)
-if [ "$bac" = "401" ]; then
+#checking bacularis
+bac=$(curl -s -I localhost:9097 | grep HTTP | cut -d " " -f 2)
+if [ "$bac" = "401" ] || [ "$bac" = "301" ] || [ "$bac" = "301" ] || [ "$bac" = "200" ]; then
 	health=$((health+32))
 fi
 
-#checking baculum-api
-apibac=$(curl -s -I localhost:9096 | grep HTTP | cut -d " " -f 2)
-if [ "$apibac" = "401" ]; then
-	health=$((health+64))
-fi
-
-if [ "$health" == 127 ]; then
+if [ "$health" == 63 ]; then
 	exit 0
 else
 	exit 1

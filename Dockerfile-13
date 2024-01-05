@@ -30,6 +30,8 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     a2enmod rewrite && \
     a2enconf php7.4-fpm && \
     a2ensite bacularis && \
+    sed -i '/ServerName localhost/a ErrorLog ${APACHE_LOG_DIR}/error.log' /etc/apache2/sites-available/bacularis.conf && \
+    sed -i '/ServerName localhost/a CustomLog ${APACHE_LOG_DIR}/access.log combined' /etc/apache2/sites-available/bacularis.conf && \
     useradd -M -d /opt/bacula -s /bin/bash bacula && \
     usermod -aG tape www-data && \
     usermod -aG bacula www-data && \ 
