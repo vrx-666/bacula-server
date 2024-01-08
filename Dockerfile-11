@@ -31,10 +31,10 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     a2ensite baculum-api && \
     a2ensite baculum-web && \
     a2enmod rewrite && \
-    sed -i 's/CustomLog.*/CustomLog \/dev\/stdout combined/' /etc/apache2/sites-available/baculum-api.conf
-    sed -i 's/ErrorLog.*/ErrorLog \/dev\/stdout' /etc/apache2/sites-available/baculum-api.conf
-    sed -i 's/CustomLog.*/CustomLog \/dev\/stdout combined/' /etc/apache2/sites-available/baculum-web.conf
-    sed -i 's/ErrorLog.*/ErrorLog \/dev\/stdout' /etc/apache2/sites-available/baculum-web.conf
+    sed -i 's/CustomLog.*/CustomLog \/dev\/stdout combined env=!dontlog/g' /etc/apache2/sites-available/baculum-api.conf && \
+    sed -i 's/ErrorLog.*/ErrorLog \/dev\/stdout' /etc/apache2/sites-available/baculum-api.conf && \
+    sed -i 's/CustomLog.*/CustomLog \/dev\/stdout combined env=!dontlog/g' /etc/apache2/sites-available/baculum-web.conf && \
+    sed -i 's/ErrorLog.*/ErrorLog \/dev\/stdout' /etc/apache2/sites-available/baculum-web.conf && \
     useradd -M -d /opt/bacula -s /bin/bash bacula && \
     usermod -aG tape www-data && \
     usermod -aG bacula www-data && \ 
@@ -58,6 +58,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     ln -s /opt/bacula/bin/bconsole /usr/bin/bconsole && \
     ln -s /usr/lib /opt/bacula/plugins && \
     echo "ServerName 127.0.0.1" >> /etc/apache2/apache2.conf && \
+    echo 'SetEnvIf Remote_Addr "127\.0\.0\.1" dontlog' >> /etc/apache2/apache2.conf && \
     sed -i 's/^DIR_USER=/DIR_USER="bacula"/' /opt/bacula/scripts/bacula-ctl-dir && \
     sed -i 's/^DIR_GROUP=/DIR_GROUP="bacula"/' /opt/bacula/scripts/bacula-ctl-dir && \
     sed -i 's/^SD_USER=/SD_USER="bacula"/' /opt/bacula/scripts/bacula-ctl-sd && \
