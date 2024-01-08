@@ -45,7 +45,6 @@ If You want to send email notification, You should set container hostname as You
 ```
 9097 - Bacula Web
 9103 - Bacula Storage
-9101 - Bacula Director (could be omitted if no remote management is needed)
 ```
 # Mounts
 version 13:
@@ -55,7 +54,6 @@ version 13:
 /mnt/bacula - storage for backups
 /opt/bacula/working - bacula working directory (sqlite db, bacula db dump for backups)
 /opt/bacula/log - bacula logs
-/var/log/apache2 - baculum logs
 ```
 
 # Exaple run command
@@ -70,7 +68,6 @@ docker run -d --name='Bacula Server' \
 -v '/mnt/docker/bacula-server/etc':'/mnt/bacula/etc' \
 -v '/mnt/docker/bacula-server/storage':'/mnt/bacula' \
 -v '/mnt/docker/bacula-server/log/bacula':'/opt/bacula/log' \
--v '/mnt/docker/bacula-server/log/apache2':'/var/log/apache2' \
 -v '/mnt/docker/bacula-server/bacularis':'/etc/bacularis' \
 bacula-server:13-postgresql
 ```
