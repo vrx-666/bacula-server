@@ -45,7 +45,7 @@ fi
 
 #checking bacularis
 bac=$(curl -s -I localhost:9097 | grep HTTP | cut -d " " -f 2)
-if [ "$bac" = "401" ] || [ "$bac" = "301" ] || [ "$bac" = "301" ] || [ "$bac" = "200" ]; then
+if [ "$bac" = "401" ] || [ "$bac" = "301" ] || [ "$bac" = "302" ] || [ "$bac" = "200" ]; then
 	health=$((health+32))
 fi
 
