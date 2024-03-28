@@ -32,6 +32,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     a2ensite bacularis && \
     sed -i '/ServerName localhost/a ErrorLog \/dev/\stdout' /etc/apache2/sites-available/bacularis.conf && \
     sed -i '/ServerName localhost/a CustomLog \/dev\/stdout combined env=!dontlog' /etc/apache2/sites-available/bacularis.conf && \
+    rm -f /etc/apache2/sites-enabled/000-default.conf && \
     useradd -M -d /opt/bacula -s /bin/bash bacula && \
     usermod -aG tape www-data && \
     usermod -aG bacula www-data && \ 
