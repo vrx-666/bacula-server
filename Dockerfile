@@ -1,8 +1,10 @@
 FROM debian:bullseye
 
+ARG BACULAV
+
 LABEL maintainer="developer@s.vrx.pl"
 LABEL version="2.2"
-LABEL description="Bacula Server 13"
+LABEL description="Bacula Server ${BACULAV}"
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DB
@@ -37,7 +39,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     usermod -aG tape www-data && \
     usermod -aG bacula www-data && \ 
     mkdir /opt/bacula_src && \
-    curl -s $(curl -s https://www.bacula.org/source-download-center/ | grep -B1 -i -E 'Bacula 13[0-9\.]* Source Files.* downloads' | grep href | sed -e 's/^.*href="//' -e 's/" rel.*$//') -o /opt/bacula_src/bacula_src.tgz && \
+    curl -s $(curl -s https://www.bacula.org/source-download-center/ | grep -B1 -i -E "Bacula ${BACULAV}[0-9\.]* Source Files.* downloads" | grep href | sed -e 's/^.*href="//' -e 's/" rel.*$//') -o /opt/bacula_src/bacula_src.tgz && \
     cd /opt/bacula_src && tar -zxvf bacula_src.tgz && \
     mv $(find -maxdepth 1 -type d -name "bacula*") bacula_src && \
     cd /opt/bacula_src/bacula_src && CFLAGS="-g -O2"    ./configure --sbindir=/opt/bacula/bin --sysconfdir=/opt/bacula/etc --with-scriptdir=/opt/bacula/scripts --with-pid-dir=/opt/bacula/working --with-subsys-dir=/opt/bacula/working --enable-smartalloc --with-${DB} --with-working-dir=/opt/bacula/working --with-dump-email=root --with-job-email=root --with-smtp-host=localhost --disable-ipv6 --enable-conio && \
@@ -69,15 +71,15 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     rm -rf /var/cache/apt/* && \
     mkdir /opt/exim-default-conf
 
-COPY conf/13/bacula-sd.conf /home/bacula/etc/bacula-sd.conf
-COPY conf/13/bacula-fd.conf /home/bacula/etc/bacula-fd.conf
-COPY conf/13/${DB}/bacula-dir.conf /home/bacula/etc/bacula-dir.conf
+COPY conf/${BACULAV}/bacula-sd.conf /home/bacula/etc/bacula-sd.conf
+COPY conf/${BACULAV}/bacula-fd.conf /home/bacula/etc/bacula-fd.conf
+COPY conf/${BACULAV}/${DB}/bacula-dir.conf /home/bacula/etc/bacula-dir.conf
 COPY conf/bconsole.conf /home/bacula/etc/bconsole.conf
-COPY conf/13/sudoers /etc/sudoers
-COPY conf/13/${DB}/bacularis /home/bacularis
+COPY conf/${BACULAV}/sudoers /etc/sudoers
+COPY conf/${BACULAV}/${DB}/bacularis /home/bacularis
 COPY conf/supervisord.conf /etc/supervisord.conf
-COPY scripts/13/${DB}/entrypoint.sh /usr/sbin/entrypoint.sh
-COPY scripts/13/healthcheck /usr/bin/healthcheck
+COPY scripts/${BACULAV}/${DB}/entrypoint.sh /usr/sbin/entrypoint.sh
+COPY scripts/${BACULAV}/healthcheck /usr/bin/healthcheck
 COPY conf/update-exim4.conf.conf /opt/exim-default-conf/update-exim4.conf.conf
 COPY conf/exim4.conf.template /opt/exim-default-conf/exim4.conf.template
 COPY conf/passwd.client /opt/exim-default-conf/passwd.client
