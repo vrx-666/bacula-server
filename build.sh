@@ -25,7 +25,7 @@ function checker_db {
 
 function build_image {
 	echo -e "\nBuilding image"
-	docker build --build-arg DB=$database BACULAV=$ver -t bacula-server:$ver-$database -f Dockerfile --force-rm .
+	docker build --build-arg DB=$database --build-arg BACULAV=$ver -t bacula-server:$ver-$database -f Dockerfile --force-rm .
 }
 
 if [ "$#" == "0" ]; then
