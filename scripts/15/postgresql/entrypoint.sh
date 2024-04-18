@@ -170,6 +170,8 @@ chown -R bacula:tape $(grep -E "Archive.*Device.*=" /opt/bacula/etc/bacula-sd.co
 chmod 777 /opt/bacula/log /opt/bacula/etc
 chown -R bacula:tape /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
+chmod +w /opt/bacula/working
+chmod +x /opt/bacula/scripts
 
 htpasswd -bm /etc/bacularis/API/bacularis.users ${WEB_User} ${WEB_Password}
 htpasswd -bm /etc/bacularis/Web/bacularis.users ${WEB_User} ${WEB_Password}
