@@ -2,7 +2,7 @@
 Bacula 15 <br>
 
 Bacula Client configured to backup database by default. Could be reconfigured to backup config files.<br>
-Allows to use the postgresql or sqlite3 database.<br>
+Allows to use the postgresql(>=13) or sqlite3 database.<br>
 Sqlite3 version creates db locally, for postgresql need to have separate db server working.<br>
 For postgresql create db named "bacula" with coresponding user.<br>
 For postgresql use SQL_ASCII encoding to avoid application warnings.<br>
@@ -14,7 +14,7 @@ Pull this repository and run "build.sh"
 ```
 
 # ENV
-postgreSQL version:
+postgreSQL version (postgresql min.13 version):
 ```
 DB_Host - database ip
 DB_Port - database port (could be omitted if default)
