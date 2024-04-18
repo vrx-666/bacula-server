@@ -16,7 +16,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/info/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/lintian/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/linda/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc&& \
-    apt update && apt install -y gnupg2 curl sudo && \
+    apt update && apt install -y gnupg2 curl sudo mtx mt-st && \
     echo "deb http://www.bacula.org/downloads/baculum/stable-11/debian bullseye main" > /etc/apt/sources.list.d/baculum.list && \
     echo "deb-src http://www.bacula.org/downloads/baculum/stable-11/debian bullseye main" >> /etc/apt/sources.list.d/baculum.list && \
     cat /root/baculum.pub | apt-key add - && \
@@ -34,6 +34,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     useradd -M -d /opt/bacula -s /bin/bash bacula && \
     usermod -aG tape www-data && \
     usermod -aG bacula www-data && \ 
+    usermod -aG tape bacula && \
     mkdir /opt/bacula_src && \
     curl -s $(curl -s https://www.bacula.org/source-download-center/ | grep -B1 -i -E 'Bacula 11[0-9\.]* Source Files.* downloads' | grep href | sed -e 's/^.*href="//' -e 's/" rel.*$//') -o /opt/bacula_src/bacula_src.tgz && \
     cd /opt/bacula_src && tar -zxvf bacula_src.tgz && \
