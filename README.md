@@ -1,9 +1,5 @@
 # Bacula Server with Baculum App (web Interface)
-Bacula 13 <br>
-**New web interface - Bacularis**
-1. With new web interface it is needed to map new port 9097 instead 9095.
-2. Instead /etc/baculum binding /etc/bacularis required.
-3. If You had created custom users in baculum Web UI You need to create them after upgrade.
+Bacula 15 <br>
 
 Bacula Client configured to backup database by default. Could be reconfigured to backup config files.<br>
 Allows to use the postgresql or sqlite3 database.<br>
@@ -47,7 +43,6 @@ If You want to send email notification, You should set container hostname as You
 9103 - Bacula Storage
 ```
 # Mounts
-version 13:
 ```
 /opt/bacula/etc - bacula configuration files
 /etc/bacularis - bacularis configuration (Web UI)
@@ -69,5 +64,5 @@ docker run -d --name='Bacula Server' \
 -v '/mnt/docker/bacula-server/storage':'/mnt/bacula' \
 -v '/mnt/docker/bacula-server/log/bacula':'/opt/bacula/log' \
 -v '/mnt/docker/bacula-server/bacularis':'/etc/bacularis' \
-bacula-server:13-postgresql
+bacula-server:15-postgresql
 ```
