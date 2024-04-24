@@ -117,12 +117,12 @@ chown bacula:bacula /opt/bacula/working/bacula.db
 chmod +w /opt/bacula/working
 chmod +x /opt/bacula/scripts
 
-htpasswd -bm /etc/bacularis/API/bacularis.users ${WEB_User} ${WEB_Password}
-htpasswd -bm /etc/bacularis/Web/bacularis.users ${WEB_User} ${WEB_Password}
-if [ `grep "\[${WEB_User}\]" /etc/bacularis/Web/users.conf | wc -l` -lt 1 ];then
-        echo "" >> /etc/bacularis/Web/users.conf
-        echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" >> /etc/bacularis/Web/users.conf
-fi
+htpasswd -cbm /etc/bacularis/API/bacularis.users ${WEB_User} ${WEB_Password}
+echo -e "[${WEB_User}]\nbconsole_cfg_path = \"\"\n" > /etc/bacularis/API/basic.conf
+htpasswd -cbm /etc/bacularis/Web/bacularis.users ${WEB_User} ${WEB_Password}
+sed -i "s/^login = .*$/login = \"$WEB_User\"/g" /etc/bacularis/Web/hosts.conf
+sed -i "s/^password = .*$/password =\"$WEB_Password\"/g" /etc/bacularis/Web/hosts.conf
+echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" > /etc/bacularis/Web/users.conf
 
 cp /opt/exim-default-conf/update-exim4.conf.conf /etc/exim4/
 chown root:root /etc/exim4/update-exim4.conf.conf
