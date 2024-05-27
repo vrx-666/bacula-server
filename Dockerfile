@@ -16,7 +16,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/info/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/lintian/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/linda/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc&& \
-    apt update && apt install -y gnupg2 gpg curl sudo mtx mt-st && \
+    apt update && apt install -y less groff unzip gnupg2 gpg curl sudo mtx mt-st python2 && \
     echo "deb [signed-by=/usr/share/keyrings/bacularis-archive-keyring.gpg] https://pkgs.bacularis.app/stable/debian bullseye main" > /etc/apt/sources.list.d/bacularis.list && \
     echo "deb-src [signed-by=/usr/share/keyrings/bacularis-archive-keyring.gpg] https://pkgs.bacularis.app/stable/debian bullseye main" >> /etc/apt/sources.list.d/bacularis.list && \
     curl -s https://pkgs.bacularis.app/bacularis.pub | gpg --dearmor > /usr/share/keyrings/bacularis-archive-keyring.gpg && \
@@ -39,13 +39,22 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     usermod -aG tape www-data && \
     usermod -aG bacula www-data && \ 
     usermod -aG tape bacula && \
+    mkdir /opt/aws_cli_src && \
+    curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/opt/aws_cli_src/awscliv2.zip" && \
+    cd /opt/aws_cli_src && unzip awscliv2.zip && \
+    /opt/aws_cli_src/aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update && \
+    rm -rf /opt/aws_cli_src && \
     mkdir /opt/bacula_src && \
     curl -s $(curl -s https://www.bacula.org/source-download-center/ | grep -B1 -i -E "Bacula ${BACULAV}[0-9\.]* Source Files.* downloads" | grep href | sed -e 's/^.*href="//' -e 's/" rel.*$//') -o /opt/bacula_src/bacula_src.tgz && \
     cd /opt/bacula_src && tar -zxvf bacula_src.tgz && \
     mv $(find -maxdepth 1 -type d -name "bacula*") bacula_src && \
-    cd /opt/bacula_src/bacula_src && CFLAGS="-g -O2"    ./configure --sbindir=/opt/bacula/bin --sysconfdir=/opt/bacula/etc --with-scriptdir=/opt/bacula/scripts --with-pid-dir=/opt/bacula/working --with-subsys-dir=/opt/bacula/working --enable-smartalloc --with-${DB} --with-working-dir=/opt/bacula/working --with-dump-email=root --with-job-email=root --with-smtp-host=localhost --disable-ipv6 --enable-conio --with-aws && \
+    cd /opt/bacula_src/bacula_src && CFLAGS="-g -O2"    ./configure --sbindir=/opt/bacula/bin --sysconfdir=/opt/bacula/etc --with-scriptdir=/opt/bacula/scripts --with-plugindir=/opt/bacula/plugins --with-pid-dir=/opt/bacula/working --with-subsys-dir=/opt/bacula/working --enable-smartalloc --with-${DB} --with-working-dir=/opt/bacula/working --with-dump-email=root --with-job-email=root --with-smtp-host=localhost --disable-ipv6 --enable-conio --with-aws && \
     make && \
     make install && \
+    ./libtool --finish /usr/lib && \
+    cp scripts/aws_cloud_driver /opt/bacula/plugins/ && \
+    chmod +x /opt/bacula/plugins/aws_cloud_driver && \
+    chmod o+rx /opt/bacula/plugins/* && \
     rm -rf /opt/bacula_src && \
     mkdir -p /opt/vchanger_src  && \
     curl -s -L $(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/$(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/ | grep folder | grep href | grep files_name_h | head -1 | sed -e 's/.*a href="\/projects\/vchanger\/files\/vchanger\///g' -e 's/" title.*//g') |  grep href | grep tar.gz | grep files_name_h | sed -e 's/.*a href="//g' -e 's/\/download" title.*//g') > /opt/vchanger_src/vchanger.tgz && \
@@ -54,8 +63,8 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     rm -rf /opt/vchanger_src && \
     mkdir /home/bacula && \
     mv /opt/bacula/etc /home/bacula/ && \
-    mkdir /mnt/bacula && \
-    chown bacula:tape /mnt/bacula && \
+    mkdir /mnt/bacula /mnt/cloud && \
+    chown bacula:tape /mnt/bacula /mnt/cloud && \
     ln -s /opt/bacula/bin/bconsole /usr/bin/bconsole && \
     ln -s /usr/lib /opt/bacula/plugins && \
     echo "ServerName 127.0.0.1" >> /etc/apache2/apache2.conf && \
@@ -90,7 +99,7 @@ RUN mkdir /run/php && \
     chgrp bacula /home/bacula/etc/bacula-sd.conf && \
     chgrp bacula /home/bacula/etc/bacula-dir.conf 
     
-VOLUME ["/opt/bacula/etc", "/opt/bacula/working", "/opt/bacula/log", "/etc/bacularis", "/var/log/apache2", "/var/log/exim4"]
+VOLUME ["/mnt/bacula","/mnt/cloud","/opt/bacula/etc", "/opt/bacula/working", "/opt/bacula/log", "/etc/bacularis", "/var/log/apache2", "/var/log/exim4"]
 
 EXPOSE 9101/tcp 9103/tcp 9097/tcp
 
