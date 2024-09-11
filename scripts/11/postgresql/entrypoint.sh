@@ -102,6 +102,10 @@ chown -R bacula:bacula /opt/bacula/working
 chown -R bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
 
+# Fix #10, set script permissions
+chown -R bacula:tape /opt/bacula/scripts 
+chmod g+rx /opt/bacula/scripts/*
+
 for c in ${CONFIG_VARS[@]}; do
   sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bacula-fd.conf
   sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bacula-sd.conf
