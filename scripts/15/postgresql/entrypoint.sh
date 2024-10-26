@@ -95,13 +95,12 @@ if [ ! -f /opt/bacula/etc/bconsole.conf ];then
 fi
 
 chmod +rx /opt/bacula/bin/*
-for file in $(ls -la /opt/bacula/scripts | grep "\-rwx" | awk '{print $NF}'); do 
-	chmod +x /opt/bacula/scripts/$file
-done
 chown -R bacula:bacula /opt/bacula/working
 chmod -R g+w /opt/bacula/working
 chown -R bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
+chown -R bacula:tape /opt/bacula/scripts
+chmod -R +rx /opt/bacula/scripts
 
 for c in ${CONFIG_VARS[@]}; do
   sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bacula-fd.conf
@@ -171,7 +170,6 @@ chmod 777 /opt/bacula/log /opt/bacula/etc
 chown -R bacula:tape /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
 chmod +w /opt/bacula/working
-chmod +x /opt/bacula/scripts
 
 htpasswd -cbm /etc/bacularis/API/bacularis.users ${WEB_User} ${WEB_Password}
 echo -e "[${WEB_User}]\nbconsole_cfg_path = \"\"\n" > /etc/bacularis/API/basic.conf
