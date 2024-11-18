@@ -1,6 +1,8 @@
 FROM debian:bullseye
 
 ARG BACULAV
+ARG BACULARISU
+ARG BACULARISP
 
 LABEL maintainer="developer@s.vrx.pl"
 LABEL version="2.2"
@@ -17,9 +19,9 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/lintian/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/linda/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc&& \
     apt update && apt install -y less groff unzip gnupg2 gpg curl sudo mtx mt-st python2 && \
-    echo "deb [signed-by=/usr/share/keyrings/bacularis-archive-keyring.gpg] https://pkgs.bacularis.app/stable/debian bullseye main" > /etc/apt/sources.list.d/bacularis.list && \
-    echo "deb-src [signed-by=/usr/share/keyrings/bacularis-archive-keyring.gpg] https://pkgs.bacularis.app/stable/debian bullseye main" >> /etc/apt/sources.list.d/bacularis.list && \
-    curl -s https://pkgs.bacularis.app/bacularis.pub | gpg --dearmor > /usr/share/keyrings/bacularis-archive-keyring.gpg && \
+    echo "machine https://packages.bacularis.app login ${BACULARISU} password ${BACULARISP}" > /etc/apt/auth.conf.d/bacularisauth.conf && \
+    echo "deb [signed-by=/usr/share/keyrings/bacularis-archive-keyring.gpg] https://packages.bacularis.app/stable/debian bullseye main" > /etc/apt/sources.list.d/bacularis.list && \
+    curl -s https://packages.bacularis.app/bacularis.pub | gpg --dearmor > /usr/share/keyrings/bacularis-archive-keyring.gpg && \
     if [ "$DB" = "postgresql" ] ; then sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt bullseye-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
     curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     apt update && apt -y upgrade && apt install -y --no-install-recommends postgresql-client-16 lsscsi fuse procinfo pv mbuffer supervisor apache2 bacularis bacularis-apache2 php7.4-pgsql libncurses-dev libpq-dev g++ make exim4-base exim4-config exim4-daemon-light ; fi && \
@@ -57,7 +59,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     chmod o+rx /opt/bacula/plugins/* && \
     rm -rf /opt/bacula_src && \
     mkdir -p /opt/vchanger_src  && \
-    curl -s -L $(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/$(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/ | grep folder | grep href | grep files_name_h | head -1 | sed -e 's/.*a href="\/projects\/vchanger\/files\/vchanger\///g' -e 's/" title.*//g') |  grep href | grep tar.gz | grep files_name_h | sed -e 's/.*a href="//g' -e 's/\/download" title.*//g') > /opt/vchanger_src/vchanger.tgz && \
+    curl -s -L $(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/$(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/ | grep href | grep files_name_h | head -1 | sed -e 's/.*a href="\/projects\/vchanger\/files\/vchanger\///g' -e 's/"//g') |  grep href | grep tar.gz | grep files_name_h | sed -e 's/.*a href="//g' -e 's/\/download"//g') > /opt/vchanger_src/vchanger.tgz && \
     cd /opt/vchanger_src && tar -zxf vchanger.tgz && \
     cd /opt/vchanger_src/vchanger && ./configure && make && make install-strip && \
     rm -rf /opt/vchanger_src && \
@@ -78,7 +80,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     ln -s /opt/bacula/scripts/bacula-ctl-fd /etc/init.d/bacula-fd && \
     apt --purge remove -y gnupg2 gpg make g++ && \
     apt -y autoremove && apt clean all && \
-    rm -rf /var/cache/apt/* && \
+    rm -rf /etc/apt/auth.conf.d/bacularisauth.conf /etc/apt/sources.list.d/pgdg.list /var/cache/apt/* && \
     mkdir /opt/exim-default-conf
 
 COPY conf/${BACULAV}/bacula-sd.conf /home/bacula/etc/bacula-sd.conf

@@ -119,7 +119,7 @@ htpasswd -cbm /etc/bacularis/API/bacularis.users ${WEB_User} ${WEB_Password}
 echo -e "[${WEB_User}]\nbconsole_cfg_path = \"\"\n" > /etc/bacularis/API/basic.conf
 htpasswd -cbm /etc/bacularis/Web/bacularis.users ${WEB_User} ${WEB_Password}
 sed -i "s/^login = .*$/login = \"$WEB_User\"/g" /etc/bacularis/Web/hosts.conf
-sed -i "s/^password = .*$/password =\"$WEB_Password\"/g" /etc/bacularis/Web/hosts.conf
+sed -i "s/^password =.*$/password =\"$WEB_Password\"/g" /etc/bacularis/Web/hosts.conf
 echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" > /etc/bacularis/Web/users.conf
 
 cp /opt/exim-default-conf/update-exim4.conf.conf /etc/exim4/
@@ -129,7 +129,7 @@ cp /opt/exim-default-conf/passwd.client /etc/exim4/
 chown root:Debian-exim /etc/exim4/passwd.client
 chmod 640 /etc/exim4/passwd.client
 cp /opt/exim-default-conf/exim4.conf.template /etc/exim4/exim4.conf.template
-chown Debian-exim /var/log/exim4
+chown -R Debian-exim:Debian-exim /var/log/exim4
 
 for c in ${SMTP_VARS[@]}; do
   sed -i "s,@${c}@,$(eval echo \$$c)," /etc/exim4/update-exim4.conf.conf

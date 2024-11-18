@@ -25,7 +25,13 @@ function checker_db {
 
 function build_image {
 	echo -e "\nBuilding image"
-	docker build --build-arg DB=$database --build-arg BACULAV=$ver -t bacula-server:$ver-$database -f Dockerfile --force-rm .
+	if [ -f .bacularis_pass ];then
+	  source .bacularis_pass
+	else
+	  echo "Can't build without credentials to https://users.bacularis.com/user/register/"
+	  exit 1
+	fi
+	docker build --build-arg DB=$database --build-arg BACULAV=$ver --build-arg BACULARISU=$bacularis_user --build-arg BACULARISP=$bacularis_pass -t bacula-server:$ver-$database -f Dockerfile --force-rm .
 }
 
 if [ "$#" == "0" ]; then
