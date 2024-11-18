@@ -176,7 +176,6 @@ echo -e "[${WEB_User}]\nbconsole_cfg_path = \"\"\n" > /etc/bacularis/API/basic.c
 htpasswd -cbm /etc/bacularis/Web/bacularis.users ${WEB_User} ${WEB_Password}
 sed -i "s/^login =.*$/login = \"$WEB_User\"/g" /etc/bacularis/Web/hosts.conf
 sed -i "s/^password =.*$/password = \"$WEB_Password\"/g" /etc/bacularis/Web/hosts.conf
->>>>>>> master:scripts/15/postgresql/entrypoint.sh
 echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" > /etc/bacularis/Web/users.conf
 
 cp /opt/exim-default-conf/update-exim4.conf.conf /etc/exim4/
