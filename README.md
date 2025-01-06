@@ -8,6 +8,12 @@ For postgresql create db named "bacula" with coresponding user.<br>
 For postgresql use SQL_ASCII encoding to avoid application warnings.<br>
 
 # How to build
+You need to register Bacularis.app credentials, register account at https://users.bacularis.com/user/register/<br>
+Then save it to .bacularis_pass file as:
+```
+baculatis_user=LONG_USERNAME_STRING
+bacularis_pass=LONG_PASS_STRING
+```
 Pull this repository and run "build.sh"
 ```
 ./build.sh
