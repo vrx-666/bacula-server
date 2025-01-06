@@ -1,4 +1,4 @@
-# Bacula Server with Baculum App (web Interface)
+# Bacula Server with Bacularis App (web Interface)
 Bacula 15 <br>
 
 Bacula Client configured to backup database by default. Could be reconfigured to backup config files.<br>
