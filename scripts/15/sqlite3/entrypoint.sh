@@ -70,10 +70,10 @@ if [ ! -f /opt/bacula/etc/bconsole.conf ];then
 fi
 
 chmod +rx /opt/bacula/bin/*
-for file in $(ls -la /opt/bacula/scripts | grep "\-rwx" | awk '{print $NF}'); do 
-	chmod +x /opt/bacula/scripts/$file
-done
+chown -R bacula:tape /opt/bacula/scripts
+chmod -R +rx /opt/bacula/scripts/*
 chown -R bacula:bacula /opt/bacula/working
+chmod -R g+w /opt/bacula/working
 chown -R bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
 
@@ -87,16 +87,10 @@ done
 sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
 sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
 
-if [ ! -d /etc/baculum/Config-api-apache ];then
-	echo "==> Creating Baculum API config..."
-	cp -rp /home/baculum/Config-api-apache /etc/baculum/
-	chown -R www-data:www-data /etc/baculum/Config-api-apache
-fi
-if [ ! -d /etc/baculum/Config-web-apache ];then
-	echo "==> Creating Baculum Web config..."
-	cp -rp /home/baculum/Config-web-apache /etc/baculum/
-	chown -R www-data:www-data /etc/baculum/Config-web-apache
-fi
+echo "==> Checking Bacularis config..."
+cp -rpn /home/bacularis /etc/
+chown -R www-data:www-data /etc/bacularis
+
 if [ ! -f /opt/bacula/working/bacula.db ];then
 	echo "==> Catalog database missing. Creating..."
 	sed -i 's/^echo .*$//g' /opt/bacula/scripts/make_sqlite3_tables
@@ -118,14 +112,15 @@ chown -R bacula:tape $(grep -E "Archive.*Device.*=" /opt/bacula/etc/bacula-sd.co
 chmod 777 /opt/bacula/log /opt/bacula/etc
 chown -R bacula:tape /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
-chmod g+w /opt/bacula/etc/bconsole.conf
 chown bacula:bacula /opt/bacula/working/bacula.db
+chmod +w /opt/bacula/working
 
-htpasswd -bm /etc/baculum/Config-web-apache/baculum.users ${WEB_User} ${WEB_Password}
-if [ `grep "\[${WEB_User}\]" /etc/baculum/Config-web-apache/users.conf | wc -l` -lt 1 ];then
-        echo "" >> /etc/baculum/Config-web-apache/users.conf
-        echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" >> /etc/baculum/Config-web-apache/users.conf
-fi
+htpasswd -cbm /etc/bacularis/API/bacularis.users ${WEB_User} ${WEB_Password}
+echo -e "[${WEB_User}]\nbconsole_cfg_path = \"\"\n" > /etc/bacularis/API/basic.conf
+htpasswd -cbm /etc/bacularis/Web/bacularis.users ${WEB_User} ${WEB_Password}
+sed -i "s/^login =.*$/login = \"$WEB_User\"/g" /etc/bacularis/Web/hosts.conf
+sed -i "s/^password =.*$/password = \"$WEB_Password\"/g" /etc/bacularis/Web/hosts.conf
+echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" > /etc/bacularis/Web/users.conf
 
 cp /opt/exim-default-conf/update-exim4.conf.conf /etc/exim4/
 chown root:root /etc/exim4/update-exim4.conf.conf
@@ -134,7 +129,7 @@ cp /opt/exim-default-conf/passwd.client /etc/exim4/
 chown root:Debian-exim /etc/exim4/passwd.client
 chmod 640 /etc/exim4/passwd.client
 cp /opt/exim-default-conf/exim4.conf.template /etc/exim4/exim4.conf.template
-chown Debian-exim /var/log/exim4
+chown -R Debian-exim:Debian-exim /var/log/exim4
 
 for c in ${SMTP_VARS[@]}; do
   sed -i "s,@${c}@,$(eval echo \$$c)," /etc/exim4/update-exim4.conf.conf
