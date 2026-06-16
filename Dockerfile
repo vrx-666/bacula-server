@@ -1,17 +1,18 @@
 FROM debian:bullseye
 
 ARG BACULAV
-ARG BACULARISU
-ARG BACULARISP
 
 LABEL maintainer="developer@s.vrx.pl"
 LABEL version="2.2"
 LABEL description="Bacula Server ${BACULAV}"
+LABEL org.opencontainers.image.source="https://github.com/vrx-666/bacula-server"
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DB
 
-RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+RUN --mount=type=secret,id=bacularis_user \
+    --mount=type=secret,id=bacularis_pass \
+    echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-include /usr/share/doc/*/copyright" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/man/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/groff/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
@@ -19,7 +20,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/lintian/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/linda/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc&& \
     apt update && apt install -y less groff unzip gnupg2 gpg curl sudo mtx mt-st python2 && \
-    echo "machine https://packages.bacularis.app login ${BACULARISU} password ${BACULARISP}" > /etc/apt/auth.conf.d/bacularisauth.conf && \
+    echo "machine https://packages.bacularis.app login $(cat /run/secrets/bacularis_user) password $(cat /run/secrets/bacularis_pass)" > /etc/apt/auth.conf.d/bacularisauth.conf && \
     echo "deb [signed-by=/usr/share/keyrings/bacularis-archive-keyring.gpg] https://packages.bacularis.app/stable/debian bullseye main" > /etc/apt/sources.list.d/bacularis.list && \
     curl -s https://packages.bacularis.app/bacularis.pub | gpg --dearmor > /usr/share/keyrings/bacularis-archive-keyring.gpg && \
     if [ "$DB" = "postgresql" ] ; then sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt bullseye-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \

@@ -1,0 +1,86 @@
+name: Build and publish Bacula Server image
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    if: github.repository == 'vrx-666/bacula-server'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # required to push to GHCR
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [postgresql, sqlite3]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history needed to count builds since VERSION changed
+
+      - name: Compute version and build number
+        id: ver
+        env:
+          DB: ${{ matrix.db }}
+        run: |
+          # VERSION holds <bacula_version>.<build_seed>, e.g. 15.20
+          SEED=$(tr -d '[:space:]' < VERSION)
+          VER=${SEED%.*}                                       # 15
+          BUILD_START=${SEED##*.}                              # 20
+          BASE_COMMIT=$(git log -1 --format=%H -- VERSION)     # last commit that touched VERSION
+          COMMITS=$(git rev-list --count "${BASE_COMMIT}..HEAD")
+          BUILD=$((BUILD_START + COMMITS))                     # bX, resets when VERSION is bumped
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "Bacula version: $VER, build number: b$BUILD"
+
+          DH=pwa666/bacula-server
+          GH=ghcr.io/vrx-666/bacula-server
+          if [ "$DB" = "postgresql" ]; then
+            LIST="$DH:${VER}-postgresql-latest $DH:${VER}-pgsql $DH:${VER}-postgresql-b${BUILD} $GH:${VER}-postgresql $GH:${VER}-postgresql-b${BUILD}"
+          else
+            # sqlite3 is the default variant -> it also gets the generic :<VER>-latest tag
+            LIST="$DH:${VER}-sqlite3 $DH:${VER}-sqlite3-latest $DH:${VER}-sqlite3-b${BUILD} $DH:${VER}-latest $GH:${VER}-sqlite3 $GH:${VER}-sqlite3-b${BUILD}"
+          fi
+          {
+            echo "tags<<EOF"
+            for t in $LIST; do echo "$t"; done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: pwa666
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push (${{ matrix.db }})
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            DB=${{ matrix.db }}
+            BACULAV=${{ steps.ver.outputs.version }}
+          secrets: |
+            bacularis_user=${{ secrets.BACULARIS_USERNAME }}
+            bacularis_pass=${{ secrets.BACULARIS_PASS }}
+          tags: ${{ steps.ver.outputs.tags }}
+          cache-from: type=gha,scope=${{ matrix.db }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.db }}

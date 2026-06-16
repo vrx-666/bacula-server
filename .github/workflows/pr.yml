@@ -1,0 +1,46 @@
+name: PR build check
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    # Only run for PRs opened from the same repo - forks don't get the
+    # Bacularis secrets, so the build (apt install bacularis) would fail anyway.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [postgresql, sqlite3]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read Bacula version
+        id: ver
+        run: |
+          SEED=$(tr -d '[:space:]' < VERSION)
+          echo "version=${SEED%.*}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image without push (${{ matrix.db }})
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          build-args: |
+            DB=${{ matrix.db }}
+            BACULAV=${{ steps.ver.outputs.version }}
+          secrets: |
+            bacularis_user=${{ secrets.BACULARIS_USERNAME }}
+            bacularis_pass=${{ secrets.BACULARIS_PASS }}
+          cache-from: type=gha,scope=${{ matrix.db }}
