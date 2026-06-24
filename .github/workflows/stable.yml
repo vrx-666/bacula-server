@@ -42,7 +42,7 @@ jobs:
           DH=pwa666/bacula-server
           GH=ghcr.io/vrx-666/bacula-server
           if [ "$DB" = "postgresql" ]; then
-            LIST="$DH:${VER}-postgresql-latest $DH:${VER}-pgsql $DH:${VER}-postgresql-b${BUILD} $GH:${VER}-postgresql $GH:${VER}-postgresql-b${BUILD}"
+            LIST="$DH:${VER}-postgresql-latest $DH:${VER}-postgresql $DH:${VER}-postgresql-b${BUILD} $GH:${VER}-postgresql $GH:${VER}-postgresql-b${BUILD}"
           else
             # sqlite3 is the default variant -> it also gets the generic :<VER>-latest tag
             LIST="$DH:${VER}-sqlite3 $DH:${VER}-sqlite3-latest $DH:${VER}-sqlite3-b${BUILD} $DH:${VER}-latest $GH:${VER}-sqlite3 $GH:${VER}-sqlite3-b${BUILD}"
