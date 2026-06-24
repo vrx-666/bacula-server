@@ -11,7 +11,7 @@ For postgresql use SQL_ASCII encoding to avoid application warnings.<br>
 You need to register on Bacularis.app website for credentials to Bacularis packages access, register account at https://users.bacularis.com/user/register/<br>
 Then save it to .bacularis_pass file as:
 ```
-baculatis_user=LONG_USERNAME_STRING
+bacularis_user=LONG_USERNAME_STRING
 bacularis_pass=LONG_PASS_STRING
 ```
 Pull this repository and run "build.sh"
