@@ -42,16 +42,8 @@ function set_db {
 
 function build_image {
 	echo -e "\nBuilding Bacula $ver ($database) image"
-	if [ -f .bacularis_pass ];then
-		source .bacularis_pass
-		export bacularis_user bacularis_pass
-	else
-		echo "Can't build without credentials to https://users.bacularis.com/user/register/"
-		exit 1
-	fi
+	# Bacularis is installed manually from public sources - no credentials needed.
 	DOCKER_BUILDKIT=1 docker build \
-		--secret id=bacularis_user,env=bacularis_user \
-		--secret id=bacularis_pass,env=bacularis_pass \
 		--build-arg DB=$database \
 		--build-arg BACULAV=$ver \
 		-t bacula-server:$ver-$database \

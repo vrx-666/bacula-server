@@ -8,16 +8,12 @@ For postgresql create db named "bacula" with coresponding user.<br>
 For postgresql use SQL_ASCII encoding to avoid application warnings.<br>
 
 # How to build
-You need to register on Bacularis.app website for credentials to Bacularis packages access, register account at https://users.bacularis.com/user/register/<br>
-Then save it to .bacularis_pass file as:
-```
-bacularis_user=LONG_USERNAME_STRING
-bacularis_pass=LONG_PASS_STRING
-```
-Pull this repository and run "build.sh"
+Bacularis is installed manually from public sources, so no credentials are needed.<br>
+Just pull this repository and run "build.sh"
 ```
 ./build.sh
 ```
+The Bacula version is read from the `VERSION` file; the Bacularis version is set by the `BACULARISVER` build arg in the `Dockerfile` (default 6.3.0).
 
 # ENV
 postgreSQL version (postgresql min.13 version):

@@ -7,8 +7,9 @@ on:
 
 jobs:
   build:
-    # Only run for PRs opened from the same repo - forks don't get the
-    # Bacularis secrets, so the build (apt install bacularis) would fail anyway.
+    # Only run for PRs opened from the same repo - fork PRs can't push and
+    # would just burn CI time on a full source build. (No secrets are needed
+    # anymore: Bacularis is installed manually from public sources.)
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
@@ -40,7 +41,4 @@ jobs:
           build-args: |
             DB=${{ matrix.db }}
             BACULAV=${{ steps.ver.outputs.version }}
-          secrets: |
-            bacularis_user=${{ secrets.BACULARIS_USERNAME }}
-            bacularis_pass=${{ secrets.BACULARIS_PASS }}
           cache-from: type=gha,scope=${{ matrix.db }}

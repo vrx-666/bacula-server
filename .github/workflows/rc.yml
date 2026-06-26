@@ -45,9 +45,6 @@ jobs:
           build-args: |
             DB=${{ matrix.db }}
             BACULAV=${{ steps.ver.outputs.version }}
-          secrets: |
-            bacularis_user=${{ secrets.BACULARIS_USERNAME }}
-            bacularis_pass=${{ secrets.BACULARIS_PASS }}
           tags: ghcr.io/vrx-666/bacula-server:rc_${{ matrix.db }}
           cache-from: type=gha,scope=${{ matrix.db }}
           cache-to: type=gha,mode=max,scope=${{ matrix.db }}
