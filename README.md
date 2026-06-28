@@ -62,7 +62,7 @@ docker run -d --name='Bacula Server' \
 -e 'WEB_User'='admin' -e 'WEB_Password'='difficult' \
 -p '9103:9103' -p '9097:9097' \
 -v '/mnt/docker/bacula-server/working':'/opt/bacula/working' \
--v '/mnt/docker/bacula-server/etc':'/mnt/bacula/etc' \
+-v '/mnt/docker/bacula-server/etc':'/opt/bacula/etc' \
 -v '/mnt/docker/bacula-server/storage':'/mnt/bacula' \
 -v '/mnt/docker/bacula-server/log/bacula':'/opt/bacula/log' \
 -v '/mnt/docker/bacula-server/bacularis':'/etc/bacularis' \
