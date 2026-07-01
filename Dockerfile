@@ -1,46 +1,42 @@
-FROM debian:bullseye
+FROM debian:13
 
 ARG BACULAV
+ARG BACULARISVER=6.3.0
 
 LABEL maintainer="developer@s.vrx.pl"
-LABEL version="2.2"
-LABEL description="Bacula Server ${BACULAV}"
+LABEL version="3.0"
+LABEL description="Bacula Server ${BACULAV} with Bacularis ${BACULARISVER}"
 LABEL org.opencontainers.image.source="https://github.com/vrx-666/bacula-server"
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DB
 
-RUN --mount=type=secret,id=bacularis_user \
-    --mount=type=secret,id=bacularis_pass \
-    echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-include /usr/share/doc/*/copyright" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/man/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/groff/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/info/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     echo "path-exclude /usr/share/lintian/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
-    echo "path-exclude /usr/share/linda/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc&& \
-    apt update && apt install -y less groff unzip gnupg2 gpg curl sudo mtx mt-st python2 && \
-    echo "machine https://packages.bacularis.app login $(cat /run/secrets/bacularis_user) password $(cat /run/secrets/bacularis_pass)" > /etc/apt/auth.conf.d/bacularisauth.conf && \
-    echo "deb [signed-by=/usr/share/keyrings/bacularis-archive-keyring.gpg] https://packages.bacularis.app/stable/debian bullseye main" > /etc/apt/sources.list.d/bacularis.list && \
-    curl -s https://packages.bacularis.app/bacularis.pub | gpg --dearmor > /usr/share/keyrings/bacularis-archive-keyring.gpg && \
-    if [ "$DB" = "postgresql" ] ; then sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt bullseye-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
-    curl -s https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
-    apt update && apt -y upgrade && apt install -y --no-install-recommends postgresql-client-16 lsscsi fuse procinfo pv mbuffer supervisor apache2 bacularis bacularis-apache2 php7.4-pgsql libncurses-dev libpq-dev g++ make exim4-base exim4-config exim4-daemon-light ; fi && \
-    if [ "$DB" = "sqlite3" ] ; then apt update && apt -y upgrade && apt install -y --no-install-recommends lsscsi fuse procinfo pv mbuffer supervisor apache2 bacularis bacularis-apache2 libncurses-dev  libsqlite3-dev sqlite3 php7.4-sqlite3 g++ make exim4-base exim4-config exim4-daemon-light ; fi && \
-    mkdir -p /var/www/bacula && \
-    chown www-data:www-data /var/www/bacula && \
-    mv /etc/bacularis /home/ && \
+    echo "path-exclude /usr/share/linda/*" >> /etc/dpkg/dpkg.cfg.d/01_nodoc && \
+    apt update && apt install -y --no-install-recommends \
+        less groff unzip gnupg2 gpg curl wget ca-certificates file sudo mtx mt-st expect \
+        lsscsi fuse procinfo pv mbuffer supervisor apache2 apache2-utils \
+        exim4-base exim4-config exim4-daemon-light \
+        libncurses-dev g++ make \
+        php8.4-fpm php8.4-cli php8.4-bcmath php8.4-curl php8.4-xml php8.4-ldap php8.4-intl php8.4-mbstring && \
+    if [ "$DB" = "postgresql" ] ; then \
+        curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg && \
+        echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+        apt update && apt install -y --no-install-recommends postgresql-client-16 libpq-dev php8.4-pgsql ; \
+    fi && \
+    if [ "$DB" = "sqlite3" ] ; then \
+        apt install -y --no-install-recommends sqlite3 libsqlite3-dev php8.4-sqlite3 ; \
+    fi && \
+    apt -y upgrade && \
     mkdir -p /opt/bacula && \
-    a2enmod proxy_fcgi && \
-    a2enmod rewrite && \
-    a2enconf php7.4-fpm && \
-    a2ensite bacularis && \
-    sed -i '/ServerName localhost/a ErrorLog \/dev/\stdout' /etc/apache2/sites-available/bacularis.conf && \
-    sed -i '/ServerName localhost/a CustomLog \/dev\/stdout combined env=!dontlog' /etc/apache2/sites-available/bacularis.conf && \
-    rm -f /etc/apache2/sites-enabled/000-default.conf && \
     useradd -M -d /opt/bacula -s /bin/bash bacula && \
     usermod -aG tape www-data && \
-    usermod -aG bacula www-data && \ 
+    usermod -aG bacula www-data && \
     usermod -aG tape bacula && \
     mkdir /opt/aws_cli_src && \
     curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/opt/aws_cli_src/awscliv2.zip" && \
@@ -64,6 +60,52 @@ RUN --mount=type=secret,id=bacularis_user \
     cd /opt/vchanger_src && tar -zxf vchanger.tgz && \
     cd /opt/vchanger_src/vchanger && ./configure && make && make install-strip && \
     rm -rf /opt/vchanger_src && \
+    # ---------- Bacularis (manual install from public sources) ----------
+    mkdir -p /var/www/bacularis && \
+    cd /var/www/bacularis && \
+    wget -q -O bacularis-api.tar.gz https://github.com/bacularis/bacularis-api/archive/refs/tags/${BACULARISVER}.tar.gz && \
+    wget -q -O bacularis-common.tar.gz https://github.com/bacularis/bacularis-common/archive/refs/tags/${BACULARISVER}.tar.gz && \
+    wget -q -O bacularis-web.tar.gz https://github.com/bacularis/bacularis-web/archive/refs/tags/${BACULARISVER}.tar.gz && \
+    wget -q -O bacularis-app.tar.gz https://github.com/bacularis/bacularis-app/archive/refs/tags/${BACULARISVER}.tar.gz && \
+    wget -q -O bacularis-external.tar.gz https://bacularis.app/downloads/bacularis-external-${BACULARISVER}.tar.gz && \
+    tar --strip-components 1 -zxf bacularis-app.tar.gz && \
+    tar --strip-components 1 -C protected -zxf bacularis-external.tar.gz && \
+    mkdir -p protected/vendor/bacularis/bacularis-common protected/vendor/bacularis/bacularis-api protected/vendor/bacularis/bacularis-web && \
+    tar --strip-components 1 -C protected/vendor/bacularis/bacularis-common -zxf bacularis-common.tar.gz && \
+    tar --strip-components 1 -C protected/vendor/bacularis/bacularis-api -zxf bacularis-api.tar.gz && \
+    tar --strip-components 1 -C protected/vendor/bacularis/bacularis-web -zxf bacularis-web.tar.gz && \
+    cp -rf protected/vendor/bacularis/bacularis-common/project/* ./ && \
+    ln -s vendor/bacularis/bacularis-common/Common protected/Common && \
+    ln -s vendor/bacularis/bacularis-api/API protected/API && \
+    ln -s vendor/bacularis/bacularis-web/Web protected/Web && \
+    cp protected/vendor/npm-asset/fortawesome--fontawesome-free/css/all.min.css htdocs/themes/Baculum-v2/fonts/css/fontawesome-all.min.css && \
+    cp -r protected/vendor/npm-asset/fortawesome--fontawesome-free/webfonts/* htdocs/themes/Baculum-v2/fonts/webfonts/ && \
+    cp -r protected/vendor/npm-asset/fontsource--inter/files/* htdocs/themes/Baculum-v2/fonts/webfonts/ && \
+    rm -f bacularis-api.tar.gz bacularis-common.tar.gz bacularis-web.tar.gz bacularis-app.tar.gz bacularis-external.tar.gz && \
+    # Bacularis config lives in /etc/bacularis (the persistent volume); the app
+    # reads it through symlinks, mirroring how the .deb package wired things up.
+    mkdir -p /etc/bacularis/API /etc/bacularis/Web && \
+    cp protected/vendor/bacularis/bacularis-common/project/protected/samples/webserver/bacularis.users.sample /etc/bacularis/API/bacularis.users && \
+    cp protected/vendor/bacularis/bacularis-common/project/protected/samples/webserver/bacularis.users.sample /etc/bacularis/Web/bacularis.users && \
+    rm -rf protected/API/Config protected/Web/Config && \
+    ln -s /etc/bacularis/API protected/API/Config && \
+    ln -s /etc/bacularis/Web protected/Web/Config && \
+    chown -R www-data:www-data /var/www/bacularis && \
+    # install.sh runs non-interactively: -s silent, -w apache, -u www-data.
+    # It generates bacularis-apache.conf (already contains "Listen 0.0.0.0:9097").
+    protected/tools/install.sh -s -w apache -u www-data -p /run/php/php8.4-fpm.sock && \
+    mv /var/www/bacularis/bacularis-apache.conf /etc/apache2/sites-available/bacularis.conf && \
+    # move the generated/sample config out of /etc so the entrypoint can seed it
+    # from the project templates on first start (cp -rpn won't clobber otherwise)
+    mv /etc/bacularis /home/bacularis && \
+    # -------------------------------------------------------------------
+    a2enmod proxy_fcgi && \
+    a2enmod rewrite && \
+    a2enconf php8.4-fpm && \
+    a2ensite bacularis && \
+    sed -i '/ServerName localhost/a ErrorLog \/dev/\stdout' /etc/apache2/sites-available/bacularis.conf && \
+    sed -i '/ServerName localhost/a CustomLog \/dev\/stdout combined env=!dontlog' /etc/apache2/sites-available/bacularis.conf && \
+    rm -f /etc/apache2/sites-enabled/000-default.conf && \
     mkdir /home/bacula && \
     mv /opt/bacula/etc /home/bacula/ && \
     mkdir /mnt/bacula /mnt/cloud && \
@@ -81,7 +123,7 @@ RUN --mount=type=secret,id=bacularis_user \
     ln -s /opt/bacula/scripts/bacula-ctl-fd /etc/init.d/bacula-fd && \
     apt --purge remove -y gnupg2 gpg make g++ && \
     apt -y autoremove && apt clean all && \
-    rm -rf /etc/apt/auth.conf.d/bacularisauth.conf /etc/apt/sources.list.d/pgdg.list /var/cache/apt/* && \
+    rm -rf /etc/apt/sources.list.d/pgdg.list /var/cache/apt/* /var/lib/apt/lists/* && \
     mkdir /opt/exim-default-conf
 
 COPY conf/${BACULAV}/bacula-sd.conf /home/bacula/etc/bacula-sd.conf
@@ -97,16 +139,16 @@ COPY conf/update-exim4.conf.conf /opt/exim-default-conf/update-exim4.conf.conf
 COPY conf/exim4.conf.template /opt/exim-default-conf/exim4.conf.template
 COPY conf/passwd.client /opt/exim-default-conf/passwd.client
 
-RUN mkdir /run/php && \
+RUN mkdir -p /run/php && \
     chgrp bacula /home/bacula/etc/bacula-fd.conf && \
     chgrp bacula /home/bacula/etc/bacula-sd.conf && \
-    chgrp bacula /home/bacula/etc/bacula-dir.conf 
-    
+    chgrp bacula /home/bacula/etc/bacula-dir.conf
+
 VOLUME ["/mnt/bacula","/mnt/cloud","/opt/bacula/etc", "/opt/bacula/working", "/opt/bacula/log", "/etc/bacularis", "/var/log/apache2", "/var/log/exim4"]
 
 EXPOSE 9101/tcp 9103/tcp 9097/tcp
 
-HEALTHCHECK --interval=120s --timeout=10s --start-period=60s \  
+HEALTHCHECK --interval=120s --timeout=10s --start-period=60s \
     CMD bash healthcheck
 
 ENTRYPOINT ["entrypoint.sh"]
