@@ -7,10 +7,9 @@ on:
 
 jobs:
   build:
-    # Only run for PRs opened from the same repo - fork PRs can't push and
-    # would just burn CI time on a full source build. (No secrets are needed
-    # anymore: Bacularis is installed manually from public sources.)
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Fork PRs are built too: Bacularis now installs from public sources (no
+    # secrets), and this job is push:false with contents:read only - so there's
+    # nothing to protect and validating external contributions is the point.
     runs-on: ubuntu-latest
     permissions:
       contents: read
