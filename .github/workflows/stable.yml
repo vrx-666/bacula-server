@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - master
+    # Don't rebuild+republish stable for changes that never affect the image
+    # (CI workflows, gitignore, docs). A push is skipped only when ALL of its
+    # changed files match these globs, so a Dockerfile/conf/VERSION change still
+    # triggers a release.
+    paths-ignore:
+      - '.github/**'
+      - '.gitignore'
+      - 'README.md'
 
 jobs:
   build:
