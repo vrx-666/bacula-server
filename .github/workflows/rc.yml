@@ -2,6 +2,11 @@ name: Build and publish RC image (GHCR only)
 
 on:
   workflow_dispatch:        # manual trigger only (UI button + API)
+    inputs:
+      bacularisver:
+        description: "Bacularis version to build (GitHub release tag). Empty = use the Dockerfile ARG default."
+        required: false
+        default: ""
 
 jobs:
   build:
@@ -26,6 +31,17 @@ jobs:
           SEED=$(tr -d '[:space:]' < VERSION)
           echo "version=${SEED%.*}" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve Bacularis version
+        id: bver
+        run: |
+          # Use the dispatch input if given (e.g. n8n passing a freshly released
+          # version), otherwise fall back to the Dockerfile's ARG default so a
+          # plain manual run behaves exactly as before.
+          VER="${{ github.event.inputs.bacularisver }}"
+          [ -z "$VER" ] && VER=$(grep -oP 'ARG BACULARISVER=\K[0-9.]+' Dockerfile)
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Bacularis version to build: $VER"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -45,6 +61,7 @@ jobs:
           build-args: |
             DB=${{ matrix.db }}
             BACULAV=${{ steps.ver.outputs.version }}
+            BACULARISVER=${{ steps.bver.outputs.version }}
           tags: ghcr.io/vrx-666/bacula-server:rc_${{ matrix.db }}
           cache-from: type=gha,scope=${{ matrix.db }}
           cache-to: type=gha,mode=max,scope=${{ matrix.db }}
