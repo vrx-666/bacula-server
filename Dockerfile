@@ -125,7 +125,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     ln -s /opt/bacula/scripts/bacula-ctl-dir /etc/init.d/bacula-dir && \
     ln -s /opt/bacula/scripts/bacula-ctl-sd /etc/init.d/bacula-sd && \
     ln -s /opt/bacula/scripts/bacula-ctl-fd /etc/init.d/bacula-fd && \
-    apt --purge remove -y gnupg2 gpg make g++ && \
+    apt --purge remove -y gnupg2 gpg make g++ libncurses-dev libpq-dev libsqlite3-dev && \
     apt -y autoremove && apt clean all && \
     rm -rf /etc/apt/sources.list.d/pgdg.list /var/cache/apt/* /var/lib/apt/lists/* && \
     mkdir /opt/exim-default-conf
