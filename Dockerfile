@@ -44,7 +44,9 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     /opt/aws_cli_src/aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update && \
     rm -rf /opt/aws_cli_src && \
     mkdir /opt/bacula_src && \
-    curl -s $(curl -s https://www.bacula.org/source-download-center/ | grep -B1 -i -E "Bacula ${BACULAV}[0-9\.]* Source Files.* downloads" | grep href | sed -e 's/^.*href="//' -e 's/" rel.*$//') -o /opt/bacula_src/bacula_src.tgz && \
+    BACULA_URL=$(curl -s https://www.bacula.org/source-download-center/ | grep -B1 -i -E "Bacula ${BACULAV}[0-9\.]* Source Files.* downloads" | grep href | sed -e 's/^.*href="//' -e 's/" rel.*$//' | head -1) && \
+    case "$BACULA_URL" in http*) : ;; *) echo "ERROR: could not find a Bacula ${BACULAV} source download link on bacula.org (got: '$BACULA_URL'). The download page layout probably changed." >&2; exit 1 ;; esac && \
+    curl -sf "$BACULA_URL" -o /opt/bacula_src/bacula_src.tgz && \
     cd /opt/bacula_src && tar -zxvf bacula_src.tgz && \
     mv $(find -maxdepth 1 -type d -name "bacula*") bacula_src && \
     cd /opt/bacula_src/bacula_src && CFLAGS="-g -O2"    ./configure --sbindir=/opt/bacula/bin --sysconfdir=/opt/bacula/etc --with-scriptdir=/opt/bacula/scripts --with-plugindir=/opt/bacula/plugins --with-pid-dir=/opt/bacula/working --with-subsys-dir=/opt/bacula/working --enable-smartalloc --with-${DB} --with-working-dir=/opt/bacula/working --with-dump-email=root --with-job-email=root --with-smtp-host=localhost --disable-ipv6 --enable-conio --with-aws && \
@@ -56,7 +58,9 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     chmod o+rx /opt/bacula/plugins/* && \
     rm -rf /opt/bacula_src && \
     mkdir -p /opt/vchanger_src  && \
-    curl -s -L $(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/$(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/ | grep href | grep files_name_h | head -1 | sed -e 's/.*a href="\/projects\/vchanger\/files\/vchanger\///g' -e 's/"//g') |  grep href | grep tar.gz | grep files_name_h | sed -e 's/.*a href="//g' -e 's/\/download"//g') > /opt/vchanger_src/vchanger.tgz && \
+    VCHANGER_URL=$(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/$(curl -s https://sourceforge.net/projects/vchanger/files/vchanger/ | grep href | grep files_name_h | head -1 | sed -e 's/.*a href="\/projects\/vchanger\/files\/vchanger\///g' -e 's/"//g') |  grep href | grep tar.gz | grep files_name_h | sed -e 's/.*a href="//g' -e 's/\/download"//g' | head -1) && \
+    case "$VCHANGER_URL" in http*) : ;; *) echo "ERROR: could not find a vchanger source download link on sourceforge (got: '$VCHANGER_URL'). The file listing layout probably changed." >&2; exit 1 ;; esac && \
+    curl -sfL "$VCHANGER_URL" > /opt/vchanger_src/vchanger.tgz && \
     cd /opt/vchanger_src && tar -zxf vchanger.tgz && \
     cd /opt/vchanger_src/vchanger && ./configure && make && make install-strip && \
     rm -rf /opt/vchanger_src && \
