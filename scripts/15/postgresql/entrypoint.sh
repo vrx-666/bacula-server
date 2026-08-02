@@ -4,19 +4,39 @@
 # zbiorze znakow. Escapujemy wiec to, co ma znaczenie w czesci zastepujacej
 # sed-a przy separatorze ",": przecinek, ampersand i ukosnik odwrotny.
 esc() {
+	# Zwraca wartosc gotowa do wstawienia w czesci zastepujacej sed-a, albo 1,
+	# gdy podstawienie nie jest bezpieczne. Status MUSI sprawdzic wolajacy.
+	local wartosc
 	# CR bierze sie z plikow .env zapisanych w Windows i trafialby do
 	# konfiguracji doslownie -- usuwamy go po cichu, bo to artefakt zapisu.
 	wartosc=$(printf '%s' "$1" | tr -d '\r')
 	# Znak nowej linii rozbija wyrazenie sed ("unterminated `s' command"),
-	# podstawienie sie nie wykonuje i w konfiguracji zostaje surowy znacznik.
-	# Wartosc wieloliniowa i tak nie ma sensu w tych plikach, wiec zatrzymujemy
-	# start z jasnym komunikatem zamiast zostawiac zepsuta konfiguracje.
+	# a wartosc wieloliniowa i tak nie ma sensu w tych plikach.
 	case "$wartosc" in
-		*$'\n'*)
-			echo "==> Configuration value contains a newline, which cannot be substituted. Check your environment variables." >&2
-			exit 1 ;;
+		*$'\n'*) return 1 ;;
 	esac
+	# Escapujemy to, co ma znaczenie w czesci zastepujacej sed-a przy
+	# separatorze ",": przecinek, ampersand (cale dopasowanie) i ukosnik
+	# odwrotny.
 	printf '%s' "$wartosc" | sed -e 's/[&,\\]/\\&/g'
+}
+
+# Podstawia @NAZWA@ we wskazanych plikach wartoscia zmiennej o tej nazwie.
+#
+# Sprawdzenie statusu esc musi byc tutaj, a nie w samej funkcji: esc bywa
+# wolane w podstawieniu polecen, a przerwanie w podpowloce konczy tylko ja.
+# Bez tego sed dostawal pusty ciag, zwracal sukces i wpisywal do konfiguracji
+# pusta wartosc, a entrypoint szedl dalej.
+podstaw() {
+	local nazwa=$1; shift
+	local wartosc plik
+	if ! wartosc=$(esc "${!nazwa}"); then
+		echo "==> Value of ${nazwa} contains a newline and cannot be substituted. Check your environment variables." >&2
+		exit 1
+	fi
+	for plik in "$@"; do
+		sed -i "s,@${nazwa}@,${wartosc}," "$plik"
+	done
 }
 
 : ${SD_Host:=""}
@@ -123,22 +143,19 @@ chown -R bacula:tape /opt/bacula/scripts
 chmod -R +rx /opt/bacula/scripts
 
 for c in "${CONFIG_VARS[@]}"; do
-  sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bacula-fd.conf
-  sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bacula-sd.conf
-  sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bacula-dir.conf
-  sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bconsole.conf
+  podstaw "$c" /opt/bacula/etc/bacula-fd.conf /opt/bacula/etc/bacula-sd.conf \
+    /opt/bacula/etc/bacula-dir.conf /opt/bacula/etc/bconsole.conf
 done
 
-sed -i "s,@SMTP_User@,$(esc "${SMTP_User}")," /opt/bacula/etc/bacula-dir.conf
-sed -i "s,@EMAIL_Recipient@,$(esc "${EMAIL_Recipient}")," /opt/bacula/etc/bacula-dir.conf
+podstaw SMTP_User /opt/bacula/etc/bacula-dir.conf
+podstaw EMAIL_Recipient /opt/bacula/etc/bacula-dir.conf
 
 echo "==> Checking Bacularis config..."
 cp -rpn /home/bacularis /etc/
 chown -R www-data:www-data /etc/bacularis
 
 for d in "${DB_VARS[@]}"; do
-  sed -i "s,@${d}@,$(esc "${!d}")," /opt/bacula/etc/bacula-dir.conf
-  sed -i "s,@${d}@,$(esc "${!d}")," /etc/bacularis/API/api.conf
+  podstaw "$d" /opt/bacula/etc/bacula-dir.conf /etc/bacularis/API/api.conf
 done
 
 
@@ -208,18 +225,17 @@ cp /opt/exim-default-conf/exim4.conf.template /etc/exim4/exim4.conf.template
 chown -R Debian-exim:Debian-exim /var/log/exim4
 
 for c in "${SMTP_VARS[@]}"; do
-  sed -i "s,@${c}@,$(esc "${!c}")," /etc/exim4/update-exim4.conf.conf
+  podstaw "$c" /etc/exim4/update-exim4.conf.conf
 done
 
 for a in "${AUTH_VARS[@]}"; do
-  sed -i "s,@${a}@,$(esc "${!a}")," /etc/exim4/passwd.client
-  sed -i "s,@${a}@,$(esc "${!a}")," /etc/exim4/exim4.conf.template
+  podstaw "$a" /etc/exim4/passwd.client /etc/exim4/exim4.conf.template
 done
 
 domain=$(echo "${SMTP_User}" | sed -e 's/.*@//g')
-sed -i "s,@domain@,$(esc "$domain")," /etc/exim4/update-exim4.conf.conf
-sed -i "s,@SMTP_User@,$(esc "${SMTP_User}")," /opt/bacula/etc/bacula-dir.conf
-sed -i "s,@EMAIL_Recipient@,$(esc "${EMAIL_Recipient}")," /opt/bacula/etc/bacula-dir.conf
+podstaw domain /etc/exim4/update-exim4.conf.conf
+podstaw SMTP_User /opt/bacula/etc/bacula-dir.conf
+podstaw EMAIL_Recipient /opt/bacula/etc/bacula-dir.conf
 update-exim4.conf
 
 if [ ! -z ${SMTP_Host} ];then
