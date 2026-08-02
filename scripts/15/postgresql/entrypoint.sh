@@ -1,4 +1,10 @@
 #!/bin/bash
+# Wartosci podstawiane do konfiguracji moga pochodzic od operatora (haslo do
+# bazy, adresat powiadomien), a nie tylko z generatora hasel o ustalonym
+# zbiorze znakow. Escapujemy wiec to, co ma znaczenie w czesci zastepujacej
+# sed-a przy separatorze ",": przecinek, ampersand i ukosnik odwrotny.
+esc() { printf '%s' "$1" | sed -e 's/[&,\\]/\\&/g'; }
+
 : ${SD_Host:=""}
 : ${DB_User:=""}
 : ${DB_Password:=""}
@@ -103,22 +109,22 @@ chown -R bacula:tape /opt/bacula/scripts
 chmod -R +rx /opt/bacula/scripts
 
 for c in ${CONFIG_VARS[@]}; do
-  sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bacula-fd.conf
-  sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bacula-sd.conf
-  sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bacula-dir.conf
-  sed -i "s,@${c}@,$(eval echo \$$c)," /opt/bacula/etc/bconsole.conf
+  sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bacula-fd.conf
+  sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bacula-sd.conf
+  sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bacula-dir.conf
+  sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bconsole.conf
 done
 
-sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
-sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
+sed -i "s,@SMTP_User@,$(esc "${SMTP_User}")," /opt/bacula/etc/bacula-dir.conf
+sed -i "s,@EMAIL_Recipient@,$(esc "${EMAIL_Recipient}")," /opt/bacula/etc/bacula-dir.conf
 
 echo "==> Checking Bacularis config..."
 cp -rpn /home/bacularis /etc/
 chown -R www-data:www-data /etc/bacularis
 
 for d in ${DB_VARS[@]}; do
-  sed -i "s,@${d}@,$(eval echo \$$d)," /opt/bacula/etc/bacula-dir.conf
-  sed -i "s,@${d}@,$(eval echo \$$d)," /etc/bacularis/API/api.conf
+  sed -i "s,@${d}@,$(esc "${!d}")," /opt/bacula/etc/bacula-dir.conf
+  sed -i "s,@${d}@,$(esc "${!d}")," /etc/bacularis/API/api.conf
 done
 
 
@@ -188,18 +194,18 @@ cp /opt/exim-default-conf/exim4.conf.template /etc/exim4/exim4.conf.template
 chown -R Debian-exim:Debian-exim /var/log/exim4
 
 for c in ${SMTP_VARS[@]}; do
-  sed -i "s,@${c}@,$(eval echo \$$c)," /etc/exim4/update-exim4.conf.conf
+  sed -i "s,@${c}@,$(esc "${!c}")," /etc/exim4/update-exim4.conf.conf
 done
 
 for a in ${AUTH_VARS[@]}; do
-  sed -i "s,@${a}@,$(eval echo \$$a)," /etc/exim4/passwd.client
-  sed -i "s,@${a}@,$(eval echo \$$a)," /etc/exim4/exim4.conf.template
+  sed -i "s,@${a}@,$(esc "${!a}")," /etc/exim4/passwd.client
+  sed -i "s,@${a}@,$(esc "${!a}")," /etc/exim4/exim4.conf.template
 done
 
 domain=$(echo "${SMTP_User}" | sed -e 's/.*@//g')
-sed -i "s,@domain@,$domain," /etc/exim4/update-exim4.conf.conf
-sed -i "s,@SMTP_User@,${SMTP_User}," /opt/bacula/etc/bacula-dir.conf
-sed -i "s,@EMAIL_Recipient@,${EMAIL_Recipient}," /opt/bacula/etc/bacula-dir.conf
+sed -i "s,@domain@,$(esc "$domain")," /etc/exim4/update-exim4.conf.conf
+sed -i "s,@SMTP_User@,$(esc "${SMTP_User}")," /opt/bacula/etc/bacula-dir.conf
+sed -i "s,@EMAIL_Recipient@,$(esc "${EMAIL_Recipient}")," /opt/bacula/etc/bacula-dir.conf
 update-exim4.conf
 
 if [ ! -z ${SMTP_Host} ];then
