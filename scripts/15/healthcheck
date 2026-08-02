@@ -4,7 +4,13 @@
 # istnienie procesu i uprawnienia -- bez przeszukiwania wyjscia ps, gdzie numer
 # potrafil trafic w kolumne RSS albo w argumenty innego procesu.
 alive() {
-	[ -n "$1" ] && kill -0 "$1" 2>/dev/null && echo 1 || echo 0
+	# Wylacznie dodatnia liczba calkowita. Bez tego warunku plik PID z zerem
+	# albo smieciem dawal falszywe "zyje": kill -0 0 sygnalizuje cala grupe
+	# procesow, a kill -0 -1 wszystkie procesy -- oba zawsze sie udaja.
+	case "$1" in
+		''|*[!0-9]*) echo 0; return ;;
+	esac
+	[ "$1" -gt 0 ] && kill -0 "$1" 2>/dev/null && echo 1 || echo 0
 }
 
 now=$(date +%d%H%M)

@@ -3,7 +3,21 @@
 # bazy, adresat powiadomien), a nie tylko z generatora hasel o ustalonym
 # zbiorze znakow. Escapujemy wiec to, co ma znaczenie w czesci zastepujacej
 # sed-a przy separatorze ",": przecinek, ampersand i ukosnik odwrotny.
-esc() { printf '%s' "$1" | sed -e 's/[&,\\]/\\&/g'; }
+esc() {
+	# CR bierze sie z plikow .env zapisanych w Windows i trafialby do
+	# konfiguracji doslownie -- usuwamy go po cichu, bo to artefakt zapisu.
+	wartosc=$(printf '%s' "$1" | tr -d '\r')
+	# Znak nowej linii rozbija wyrazenie sed ("unterminated `s' command"),
+	# podstawienie sie nie wykonuje i w konfiguracji zostaje surowy znacznik.
+	# Wartosc wieloliniowa i tak nie ma sensu w tych plikach, wiec zatrzymujemy
+	# start z jasnym komunikatem zamiast zostawiac zepsuta konfiguracje.
+	case "$wartosc" in
+		*$'\n'*)
+			echo "==> Configuration value contains a newline, which cannot be substituted. Check your environment variables." >&2
+			exit 1 ;;
+	esac
+	printf '%s' "$wartosc" | sed -e 's/[&,\\]/\\&/g'
+}
 
 : ${SD_Host:=""}
 : ${DB_User:=""}
@@ -108,7 +122,7 @@ chown bacula:tape /opt/bacula/log
 chown -R bacula:tape /opt/bacula/scripts
 chmod -R +rx /opt/bacula/scripts
 
-for c in ${CONFIG_VARS[@]}; do
+for c in "${CONFIG_VARS[@]}"; do
   sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bacula-fd.conf
   sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bacula-sd.conf
   sed -i "s,@${c}@,$(esc "${!c}")," /opt/bacula/etc/bacula-dir.conf
@@ -122,7 +136,7 @@ echo "==> Checking Bacularis config..."
 cp -rpn /home/bacularis /etc/
 chown -R www-data:www-data /etc/bacularis
 
-for d in ${DB_VARS[@]}; do
+for d in "${DB_VARS[@]}"; do
   sed -i "s,@${d}@,$(esc "${!d}")," /opt/bacula/etc/bacula-dir.conf
   sed -i "s,@${d}@,$(esc "${!d}")," /etc/bacularis/API/api.conf
 done
@@ -193,11 +207,11 @@ chmod 640 /etc/exim4/passwd.client
 cp /opt/exim-default-conf/exim4.conf.template /etc/exim4/exim4.conf.template
 chown -R Debian-exim:Debian-exim /var/log/exim4
 
-for c in ${SMTP_VARS[@]}; do
+for c in "${SMTP_VARS[@]}"; do
   sed -i "s,@${c}@,$(esc "${!c}")," /etc/exim4/update-exim4.conf.conf
 done
 
-for a in ${AUTH_VARS[@]}; do
+for a in "${AUTH_VARS[@]}"; do
   sed -i "s,@${a}@,$(esc "${!a}")," /etc/exim4/passwd.client
   sed -i "s,@${a}@,$(esc "${!a}")," /etc/exim4/exim4.conf.template
 done
