@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Czy proces o danym numerze zyje. kill -0 nie wysyla sygnalu, tylko sprawdza
+# istnienie procesu i uprawnienia -- bez przeszukiwania wyjscia ps, gdzie numer
+# potrafil trafic w kolumne RSS albo w argumenty innego procesu.
+alive() {
+	[ -n "$1" ] && kill -0 "$1" 2>/dev/null && echo 1 || echo 0
+}
+
 now=$(date +%d%H%M)
 if [ "$now" == "010001" ] || [ "$now" == "010002" ]; then 
 	cp -p /var/log/apache2/access.log{,.old} && :> /var/log/apache2/access.log
@@ -9,37 +16,37 @@ fi
 health=0
 
 #checking director
-dir_pid=$(cat /opt/bacula/working/*dir*pid)
-dir_check=$(ps aux | grep $dir_pid | grep -v grep | wc -l)
-if [ "$dir_pid" != "" ] && [ "$dir_check" ]; then
+dir_pid=$(cat /opt/bacula/working/*dir*pid 2>/dev/null | head -1)
+dir_check=$(alive "$dir_pid")
+if [ "$dir_pid" != "" ] && [ "$dir_check" != 0 ]; then
 	health=$((health+1))
 fi
 
 #checking sd
-sd_pid=$(cat /opt/bacula/working/*sd*pid)
-sd_check=$(ps aux | grep $sd_pid | grep -v grep | wc -l)
+sd_pid=$(cat /opt/bacula/working/*sd*pid 2>/dev/null | head -1)
+sd_check=$(alive "$sd_pid")
 if [ "$sd_pid" != "" ] && [ $sd_check != 0 ]; then
 	health=$((health+2))
 fi
 
 #checking fd
-fd_pid=$(cat /opt/bacula/working/*fd*pid)
-fd_check=$(ps aux | grep $fd_pid | grep -v grep | wc -l)
+fd_pid=$(cat /opt/bacula/working/*fd*pid 2>/dev/null | head -1)
+fd_check=$(alive "$fd_pid")
 if [ "$fd_pid" != "" ] && [ $fd_check != 0 ]; then
 	health=$((health+4))
 fi
 
 #checking web
-web_pid=$(cat /run/apache2/apache2.pid)
-web_check=$(ps aux | grep $web_pid | grep -v grep | wc -l)
-if [ "$web_pid" != "" ] && [ "$web_check" ]; then
+web_pid=$(cat /run/apache2/apache2.pid 2>/dev/null | head -1)
+web_check=$(alive "$web_pid")
+if [ "$web_pid" != "" ] && [ "$web_check" != 0 ]; then
 	health=$((health+8))
 fi
 
 #checking supervisor
-sup_pid=$(cat /run/supervisord.pid)
-sup_check=$(ps aux | grep $sup_pid | grep -v grep | wc -l)
-if [ "$sup_pid" != "" ] && [ "$sup_check" ]; then
+sup_pid=$(cat /run/supervisord.pid 2>/dev/null | head -1)
+sup_check=$(alive "$sup_pid")
+if [ "$sup_pid" != "" ] && [ "$sup_check" != 0 ]; then
 	health=$((health+16))
 fi
 
