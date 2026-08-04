@@ -212,11 +212,27 @@ chown -R bacula:tape /opt/bacula/log
 chown -R bacula:bacula /opt/bacula/etc
 chmod +w /opt/bacula/working
 
-htpasswd -cbm /etc/bacularis/API/bacularis.users ${WEB_User} ${WEB_Password}
+# The Bacularis credentials never went through substitute(): htpasswd and the
+# two sed calls below write them straight into the Bacularis config, so they
+# missed the guarding the @PLACEHOLDER@ path already had. Unquoted, a password
+# containing a space was split into extra arguments -- htpasswd quietly fell
+# back to SHA-1 and the login then failed. And with "/" as the sed separator a
+# slash aborted the substitution, leaving the previous value in hosts.conf,
+# while an ampersand pasted the whole match into the file.
+if ! web_user=$(esc "$WEB_User"); then
+	echo "==> Value of WEB_User contains a newline and cannot be substituted. Check your environment variables." >&2
+	exit 1
+fi
+if ! web_password=$(esc "$WEB_Password"); then
+	echo "==> Value of WEB_Password contains a newline and cannot be substituted. Check your environment variables." >&2
+	exit 1
+fi
+
+htpasswd -cbm /etc/bacularis/API/bacularis.users "$WEB_User" "$WEB_Password"
 echo -e "[${WEB_User}]\nbconsole_cfg_path = \"\"\n" > /etc/bacularis/API/basic.conf
-htpasswd -cbm /etc/bacularis/Web/bacularis.users ${WEB_User} ${WEB_Password}
-sed -i "s/^login =.*$/login = \"$WEB_User\"/g" /etc/bacularis/Web/hosts.conf
-sed -i "s/^password =.*$/password = \"$WEB_Password\"/g" /etc/bacularis/Web/hosts.conf
+htpasswd -cbm /etc/bacularis/Web/bacularis.users "$WEB_User" "$WEB_Password"
+sed -i "s,^login =.*$,login = \"${web_user}\",g" /etc/bacularis/Web/hosts.conf
+sed -i "s,^password =.*$,password = \"${web_password}\",g" /etc/bacularis/Web/hosts.conf
 echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" > /etc/bacularis/Web/users.conf
 
 cp /opt/exim-default-conf/update-exim4.conf.conf /etc/exim4/
