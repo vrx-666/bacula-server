@@ -173,12 +173,35 @@ if ! web_password=$(esc "$WEB_Password"); then
 	exit 1
 fi
 
+# The Bacularis config is INI-like: these values are written inside double
+# quotes, and the user name doubles as a section header. A double quote ends the
+# string early -- password = "Pas"w0rd" reads back as Pas -- a backslash may be
+# taken as an escape by the parser, and a bracket breaks the header. Rather than
+# guess at Bacularis's own escaping rules and write a config that silently means
+# something else, refuse the value and say so.
+reject_unsafe() {
+	local name=$1 value=$2 forbidden=$3 description=$4
+	case "$value" in
+		*["$forbidden"]*)
+			echo "==> ${name} must not contain ${description}. Bacularis stores it in a quoted INI value, where it would change the meaning of the file. Please choose a different value." >&2
+			exit 1 ;;
+	esac
+}
+
+reject_unsafe WEB_User "$WEB_User" '"\\][' 'a double quote, a backslash or a square bracket'
+reject_unsafe WEB_Password "$WEB_Password" '"\\' 'a double quote or a backslash'
+
 htpasswd -cbm /etc/bacularis/API/bacularis.users "$WEB_User" "$WEB_Password"
-echo -e "[${WEB_User}]\nbconsole_cfg_path = \"\"\n" > /etc/bacularis/API/basic.conf
+# printf, not echo -e: echo -e expands escape sequences found in the VALUE, so a
+# user name of admin\nfoo = bar wrote a broken section header and an arbitrary
+# extra key into the file. printf only interprets its format string, never its
+# arguments, so the name lands verbatim.
+printf '[%s]\nbconsole_cfg_path = ""\n\n' "$WEB_User" > /etc/bacularis/API/basic.conf
 htpasswd -cbm /etc/bacularis/Web/bacularis.users "$WEB_User" "$WEB_Password"
 sed -i "s,^login =.*$,login = \"${web_user}\",g" /etc/bacularis/Web/hosts.conf
 sed -i "s,^password =.*$,password = \"${web_password}\",g" /etc/bacularis/Web/hosts.conf
-echo -e "[${WEB_User}]\nlong_name = \"\"\ndescription = \"\"\nemail = \"\"\nroles = \"admin\"\nenabled = \"1\"\nips = \"\"\nusername = \"${WEB_User}\"" > /etc/bacularis/Web/users.conf
+printf '[%s]\nlong_name = ""\ndescription = ""\nemail = ""\nroles = "admin"\nenabled = "1"\nips = ""\nusername = "%s"\n' \
+	"$WEB_User" "$WEB_User" > /etc/bacularis/Web/users.conf
 
 cp /opt/exim-default-conf/update-exim4.conf.conf /etc/exim4/
 chown root:root /etc/exim4/update-exim4.conf.conf
