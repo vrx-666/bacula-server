@@ -6,10 +6,14 @@
 esc() {
 	# Returns the value ready for sed's replacement part, or 1 when the
 	# substitution would not be safe. The caller MUST check the status.
-	local value
 	# A CR comes from .env files written on Windows and would land in the
 	# config verbatim -- drop it silently, it is an artefact of the encoding.
-	value=$(printf '%s' "$1" | tr -d '\r')
+	# Done with parameter expansion rather than $(... | tr -d): a command
+	# substitution strips trailing newlines, so a value ending in one -- or
+	# consisting of nothing else -- reached the check below already trimmed and
+	# passed it. A lone newline then became an empty string and was written to
+	# the config as a blank value, which is exactly what this guard prevents.
+	local value=${1//$'\r'/}
 	# A newline breaks the sed expression ("unterminated `s' command"), and a
 	# multi-line value makes no sense in these files anyway.
 	case "$value" in
