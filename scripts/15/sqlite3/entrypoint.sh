@@ -1,41 +1,41 @@
 #!/bin/bash
-# Wartosci podstawiane do konfiguracji moga pochodzic od operatora (haslo do
-# bazy, adresat powiadomien), a nie tylko z generatora hasel o ustalonym
-# zbiorze znakow. Escapujemy wiec to, co ma znaczenie w czesci zastepujacej
-# sed-a przy separatorze ",": przecinek, ampersand i ukosnik odwrotny.
+# Values substituted into the config can come from the operator (database
+# password, notification recipient), not only from the password generator with
+# its fixed character set. So we escape whatever is special in sed's
+# replacement part when "," is the separator: comma, ampersand and backslash.
 esc() {
-	# Zwraca wartosc gotowa do wstawienia w czesci zastepujacej sed-a, albo 1,
-	# gdy podstawienie nie jest bezpieczne. Status MUSI sprawdzic wolajacy.
-	local wartosc
-	# CR bierze sie z plikow .env zapisanych w Windows i trafialby do
-	# konfiguracji doslownie -- usuwamy go po cichu, bo to artefakt zapisu.
-	wartosc=$(printf '%s' "$1" | tr -d '\r')
-	# Znak nowej linii rozbija wyrazenie sed ("unterminated `s' command"),
-	# a wartosc wieloliniowa i tak nie ma sensu w tych plikach.
-	case "$wartosc" in
+	# Returns the value ready for sed's replacement part, or 1 when the
+	# substitution would not be safe. The caller MUST check the status.
+	local value
+	# A CR comes from .env files written on Windows and would land in the
+	# config verbatim -- drop it silently, it is an artefact of the encoding.
+	value=$(printf '%s' "$1" | tr -d '\r')
+	# A newline breaks the sed expression ("unterminated `s' command"), and a
+	# multi-line value makes no sense in these files anyway.
+	case "$value" in
 		*$'\n'*) return 1 ;;
 	esac
-	# Escapujemy to, co ma znaczenie w czesci zastepujacej sed-a przy
-	# separatorze ",": przecinek, ampersand (cale dopasowanie) i ukosnik
-	# odwrotny.
-	printf '%s' "$wartosc" | sed -e 's/[&,\\]/\\&/g'
+	# Escape what is special in sed's replacement part with "," as the
+	# separator: comma, ampersand (the whole match) and backslash.
+	printf '%s' "$value" | sed -e 's/[&,\\]/\\&/g'
 }
 
-# Podstawia @NAZWA@ we wskazanych plikach wartoscia zmiennej o tej nazwie.
+# Substitutes @NAME@ in the given files with the value of the variable of that
+# name.
 #
-# Sprawdzenie statusu esc musi byc tutaj, a nie w samej funkcji: esc bywa
-# wolane w podstawieniu polecen, a przerwanie w podpowloce konczy tylko ja.
-# Bez tego sed dostawal pusty ciag, zwracal sukces i wpisywal do konfiguracji
-# pusta wartosc, a entrypoint szedl dalej.
-podstaw() {
-	local nazwa=$1; shift
-	local wartosc plik
-	if ! wartosc=$(esc "${!nazwa}"); then
-		echo "==> Value of ${nazwa} contains a newline and cannot be substituted. Check your environment variables." >&2
+# The esc status has to be checked here, not inside esc itself: esc is called in
+# a command substitution, and exiting a subshell only ends the subshell. Without
+# this check sed was handed an empty string, reported success and wrote an empty
+# value into the config while the entrypoint carried on.
+substitute() {
+	local name=$1; shift
+	local value file
+	if ! value=$(esc "${!name}"); then
+		echo "==> Value of ${name} contains a newline and cannot be substituted. Check your environment variables." >&2
 		exit 1
 	fi
-	for plik in "$@"; do
-		sed -i "s,@${nazwa}@,${wartosc}," "$plik"
+	for file in "$@"; do
+		sed -i "s,@${name}@,${value}," "$file"
 	done
 }
 
@@ -118,12 +118,12 @@ chown -R bacula:tape /mnt/bacula
 chown bacula:tape /opt/bacula/log
 
 for c in "${CONFIG_VARS[@]}"; do
-  podstaw "$c" /opt/bacula/etc/bacula-fd.conf /opt/bacula/etc/bacula-sd.conf \
+  substitute "$c" /opt/bacula/etc/bacula-fd.conf /opt/bacula/etc/bacula-sd.conf \
     /opt/bacula/etc/bacula-dir.conf /opt/bacula/etc/bconsole.conf
 done
 
-podstaw SMTP_User /opt/bacula/etc/bacula-dir.conf
-podstaw EMAIL_Recipient /opt/bacula/etc/bacula-dir.conf
+substitute SMTP_User /opt/bacula/etc/bacula-dir.conf
+substitute EMAIL_Recipient /opt/bacula/etc/bacula-dir.conf
 
 echo "==> Checking Bacularis config..."
 cp -rpn /home/bacularis /etc/
@@ -170,17 +170,17 @@ cp /opt/exim-default-conf/exim4.conf.template /etc/exim4/exim4.conf.template
 chown -R Debian-exim:Debian-exim /var/log/exim4
 
 for c in "${SMTP_VARS[@]}"; do
-  podstaw "$c" /etc/exim4/update-exim4.conf.conf
+  substitute "$c" /etc/exim4/update-exim4.conf.conf
 done
 
 for a in "${AUTH_VARS[@]}"; do
-  podstaw "$a" /etc/exim4/passwd.client /etc/exim4/exim4.conf.template
+  substitute "$a" /etc/exim4/passwd.client /etc/exim4/exim4.conf.template
 done
 
 domain=$(echo "${SMTP_User}" | sed -e 's/.*@//g')
-podstaw domain /etc/exim4/update-exim4.conf.conf
-podstaw SMTP_User /opt/bacula/etc/bacula-dir.conf
-podstaw EMAIL_Recipient /opt/bacula/etc/bacula-dir.conf
+substitute domain /etc/exim4/update-exim4.conf.conf
+substitute SMTP_User /opt/bacula/etc/bacula-dir.conf
+substitute EMAIL_Recipient /opt/bacula/etc/bacula-dir.conf
 update-exim4.conf
 
 if [ ! -z ${SMTP_Host} ];then

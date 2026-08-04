@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# Czy proces o danym numerze zyje. kill -0 nie wysyla sygnalu, tylko sprawdza
-# istnienie procesu i uprawnienia -- bez przeszukiwania wyjscia ps, gdzie numer
-# potrafil trafic w kolumne RSS albo w argumenty innego procesu.
+# Is the process with the given id alive? kill -0 sends no signal, it only
+# checks that the process exists and that we may signal it -- no grepping
+# through ps output, where the number could match the RSS column or another
+# process's arguments.
 alive() {
-	# Wylacznie dodatnia liczba calkowita. Bez tego warunku plik PID z zerem
-	# albo smieciem dawal falszywe "zyje": kill -0 0 sygnalizuje cala grupe
-	# procesow, a kill -0 -1 wszystkie procesy -- oba zawsze sie udaja.
+	# A positive integer only. Without this guard a PID file holding zero or
+	# garbage reported a false "alive": kill -0 0 signals the whole process
+	# group and kill -0 -1 every process -- both always succeed.
 	case "$1" in
 		''|*[!0-9]*) echo 0; return ;;
 	esac
