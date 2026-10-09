@@ -1,7 +1,7 @@
 FROM debian:13
 
 ARG BACULAV
-ARG BACULARISVER=6.5.2
+ARG BACULARISVER=7.0.0
 
 LABEL maintainer="developer@s.vrx.pl"
 LABEL version="3.0"
