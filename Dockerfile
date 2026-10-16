@@ -27,7 +27,7 @@ RUN echo "path-exclude /usr/share/doc/*" > /etc/dpkg/dpkg.cfg.d/01_nodoc && \
     if [ "$DB" = "postgresql" ] ; then \
         curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg && \
         echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
-        apt update && apt install -y --no-install-recommends postgresql-client-16 libpq-dev php8.4-pgsql ; \
+        apt update && apt install -y --no-install-recommends postgresql-client-18 libpq-dev php8.4-pgsql ; \
     fi && \
     if [ "$DB" = "sqlite3" ] ; then \
         apt install -y --no-install-recommends sqlite3 libsqlite3-dev php8.4-sqlite3 ; \
