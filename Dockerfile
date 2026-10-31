@@ -148,6 +148,15 @@ RUN mkdir -p /run/php && \
     chgrp bacula /home/bacula/etc/bacula-sd.conf && \
     chgrp bacula /home/bacula/etc/bacula-dir.conf
 
+# Pull in Debian security updates on every CI build. The layers above usually come
+# from the build cache, so without this step a rebuild would ship the same package
+# versions as the previous release. CI passes a new PKG_REFRESH value on each run.
+ARG PKG_REFRESH=local
+RUN echo "package refresh: ${PKG_REFRESH}" && \
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 VOLUME ["/mnt/bacula","/mnt/cloud","/opt/bacula/etc", "/opt/bacula/working", "/opt/bacula/log", "/etc/bacularis", "/var/log/apache2", "/var/log/exim4"]
 
 EXPOSE 9101/tcp 9103/tcp 9097/tcp
