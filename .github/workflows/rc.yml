@@ -62,6 +62,7 @@ jobs:
             DB=${{ matrix.db }}
             BACULAV=${{ steps.ver.outputs.version }}
             BACULARISVER=${{ steps.bver.outputs.version }}
+            PKG_REFRESH=${{ github.run_id }}
           tags: ghcr.io/vrx-666/bacula-server:rc_${{ matrix.db }}
           cache-from: type=gha,scope=${{ matrix.db }}
           cache-to: type=gha,mode=max,scope=${{ matrix.db }}

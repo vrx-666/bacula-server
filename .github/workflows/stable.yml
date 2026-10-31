@@ -86,6 +86,7 @@ jobs:
           build-args: |
             DB=${{ matrix.db }}
             BACULAV=${{ steps.ver.outputs.version }}
+            PKG_REFRESH=${{ github.run_id }}
           tags: ${{ steps.ver.outputs.tags }}
           cache-from: type=gha,scope=${{ matrix.db }}
           cache-to: type=gha,mode=max,scope=${{ matrix.db }}
