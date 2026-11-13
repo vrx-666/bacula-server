@@ -1,0 +1,129 @@
+name: Promote tested RC to stable
+
+# Publishes the exact RC images that passed the test-environment regression as the
+# stable release, by retagging their digests — no rebuild. Dispatched by the n8n
+# Release Watcher after test-rc.sh passes (or by hand); the `stable` environment
+# holds the run until the maintainer approves it.
+on:
+  workflow_dispatch:
+    inputs:
+      bacularisver:
+        description: "Bacularis version the tested RC carries (e.g. 7.1.0) - committed as the Dockerfile pin"
+        required: true
+      postgresql_digest:
+        description: "Tested rc_postgresql digest (sha256:...)"
+        required: true
+      sqlite3_digest:
+        description: "Tested rc_sqlite3 digest (sha256:...)"
+        required: true
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  pin:
+    if: github.repository == 'vrx-666/bacula-server'
+    runs-on: ubuntu-latest
+    environment: stable        # required reviewer = the approval gate
+    permissions:
+      contents: write          # commit the pin
+      packages: read
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    env:
+      BVER: ${{ inputs.bacularisver }}
+      PG: ${{ inputs.postgresql_digest }}
+      SQ: ${{ inputs.sqlite3_digest }}
+    steps:
+      - name: Validate inputs
+        run: |
+          [[ "$BVER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "bad bacularisver: $BVER"; exit 1; }
+          for d in "$PG" "$SQ"; do
+            [[ "$d" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "bad digest: $d"; exit 1; }
+          done
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check the tested digests exist
+        run: |
+          docker buildx imagetools inspect "ghcr.io/vrx-666/bacula-server@$PG" > /dev/null
+          docker buildx imagetools inspect "ghcr.io/vrx-666/bacula-server@$SQ" > /dev/null
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: master
+
+      - name: Commit the Bacularis pin
+        id: commit
+        run: |
+          sed -i "s/^ARG BACULARISVER=.*/ARG BACULARISVER=$BVER/" Dockerfile
+          if git diff --quiet; then
+            echo "Dockerfile already pins $BVER - nothing to commit"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            # [skip ci]: stable.yml must not rebuild over the retagged, tested images.
+            # (A GITHUB_TOKEN push fires no workflows anyway; this keeps it explicit.)
+            git commit -q -a -F - <<EOF
+          Pin Bacularis $BVER for the stable build [skip ci]
+
+          Promoted by promote.yml: the tested RC images were retagged as stable
+          instead of rebuilt.
+          rc_postgresql: $PG
+          rc_sqlite3:    $SQ
+          EOF
+            git push origin HEAD:master
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  retag:
+    needs: pin
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write          # push the stable tags to GHCR
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [postgresql, sqlite3]
+    steps:
+      - name: Checkout the pin commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.pin.outputs.sha }}
+          fetch-depth: 0       # stable-tags.sh counts commits since VERSION changed
+
+      - name: Compute stable tags
+        id: ver
+        run: .github/stable-tags.sh "${{ matrix.db }}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: pwa666
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Retag the tested RC (${{ matrix.db }})
+        env:
+          DIGEST: ${{ matrix.db == 'postgresql' && inputs.postgresql_digest || inputs.sqlite3_digest }}
+          TAGS: ${{ steps.ver.outputs.tags }}
+        run: |
+          args=()
+          while read -r t; do [ -n "$t" ] && args+=(-t "$t"); done <<< "$TAGS"
+          docker buildx imagetools create "${args[@]}" "ghcr.io/vrx-666/bacula-server@$DIGEST"
+          echo "### ${{ matrix.db }}: $DIGEST" >> "$GITHUB_STEP_SUMMARY"
+          while read -r t; do [ -n "$t" ] && echo "- \`$t\`"; done <<< "$TAGS" >> "$GITHUB_STEP_SUMMARY"
